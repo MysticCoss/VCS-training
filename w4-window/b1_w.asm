@@ -20,6 +20,8 @@ segment .data
 	maxlen equ $-max
 	min db "Min : ", 0
 	minlen equ $-min
+	e_magic db "e_magic - Magic number : ", 0
+	e_cblp db "e_cblp - Bytes on last  page of file : ",0
 segment .bss
 	hStdin resq 1
 	hStdout resq 1
@@ -160,7 +162,7 @@ Start:
 	
 	;ReadFile(hFile, buffer, 1024, &byteread, nullptr)
 	sub 	rsp, 32
-	push 	0										;LPOVERLAPPED lpOverlapped
+	push 	0										;LPOVERLAPPED lpOverlapped: nullptr
 	lea 	r9, [rbp-56] 							;LPDWORD lpNumberOfBytesRead: &byteread
 	mov 	r8d, 1024								;nNumberOfBytesToRead
 	mov 	rdx, rax								;LPVOID lpBuffer: buffer
@@ -171,6 +173,81 @@ Start:
 	cmp 	rax, 0
 	je  	EndError
 	
-	;WriteConsoleA(hStdout, "e_magic - Magic number : ", 26, &nop, nullptr)
+	;rbx is used as iterator on buffer memory zone
+	mov 	rbx, [rbp-48]							;LPVOID buffer
 	
+	;////e_magic
+	;WriteConsoleA(hStdout, "e_magic - Magic number : ", 26, &writtenlen, nullptr)
+	sub 	rsp, 32
+	push 	0
+	lea 	r9, [rbp-16]
+	mov 	r8d, 26
+	mov 	rdx, e_magic
+	mov 	rcx, [hStdout]
+	add 	rsp, 40
+	
+	;WriteConsoleA(hStdout, buffer, 2, &writtenlen, nullptr)
+	sub 	rsp, 32
+	push 	0
+	lea 	r9, [rbp-16]
+	mov 	r8d, 2
+	mov 	rdx, rbx
+	mov 	rcx, [hStdout]
+	add 	rsp, 40
+	
+	;WriteConsoleA(hStdout, crlf, 2, &writtenlen, nullptr)
+	sub 	rsp, 32
+	push 	0
+	lea		r9, [rbp-16]
+	mov 	r8d, 2
+	mov 	rdx, crlf
+	mov 	rcx, [hStdout]
+	add 	rsp, 40
+	
+	;////e_cblp
+	
+	;WriteConsoleA(hStdout, "e_cblp - Bytes on last page of file : ", 39, &writtenlen, nullptr)
+	sub 	rsp, 32
+	push 	0
+	lea 	r9, [rbp-16]
+	mov 	r8d, 39
+	mov 	rdx, e_cblp
+	mov 	rcx, [hStdout]
+	add 	rsp, 40
+	
+	add 	rbx, 2
+	;CryptBinaryToStringA((BYTE*)buffer + 2, 2, CRYPT_STRING_HEXASCII, nullptr, &writtenlen)
+	sub 	rsp, 32
+	lea 	rax, [rbp-16]
+	push 	rax
+	xor 	r9, r9
+	mov 	r8d, 5
+	mov 	rdx, 2
+	mov 	rcx, rbx
+	add 	rsp, 40
+	
+	;LPVOID out = HeapAlloc(hHeap, HEAP_ZERO_MEMORY, writtenlen)
+	sub 	rsp, 32
+	mov 	r8d, [rbp-16]
+	mov 	edx, 8
+	mov 	rcx, [hHeap]
+	add		rsp, 32
+	
+	;WriteConsoleA(hStdout, buffer, 2, &nop, nullptr)
+	sub 	rsp, 32
+	push 	0
+	lea 	r9, [rbp-16]
+	mov 	r8d, 2
+	mov 	rdx, rbx
+	mov 	rcx, [hStdout]
+	add 	rsp, 40
+	
+	;WriteConsoleA(hStdout, crlf, 2, &nop, nullptr)
+	sub 	rsp, 32
+	push 	0
+	lea		r9, [rbp-16]
+	mov 	r8d, 2
+	mov 	rdx, crlf
+	mov 	rcx, [hStdout]
+	add 	rsp, 40
 	
