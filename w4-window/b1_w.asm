@@ -8,7 +8,7 @@ segment .data
 	crlf db 13,10
 	invalid db "Invalid input", 0
 	invalidlen equ $-invalid
-	errormsg db "Some error occured", 0
+	errormsg db "Some error occured ", 0
 	errormsglen equ $-errormsg
 	info db "Input array number : ", 0
 	infolen equ $-info
@@ -20,7 +20,7 @@ segment .data
 	maxlen equ $-max
 	min db "Min : ", 0
 	minlen equ $-min
-	e_magic db "e_magic - Magic number : ", 0
+	e_magic db "e_magic - Magic number : ", 0  ;;????
 	e_cblp db "e_cblp - Bytes on last  page of file : ",0
 segment .bss
 	hStdin resq 1
@@ -40,6 +40,69 @@ segment .text
 	extern GetLastError
 global Start
 
+Itoa: ;int[rax] Itoa(int64[rcx], void* buf[rdx], int bufferlen[r8])
+;Convert number in RCX to ascii-decimal representation on buffer point to by RDX. 
+;Return number of characters written
+
+;Pre-check
+	push rdi ;Non volatile register - callee save
+	push r15
+	push r14
+	push r13
+	
+	cmp rcx,0
+	jg ItoaL0
+	mov byte[rdx], 48
+	mov r15d, 1
+	jmp ItoaEnd
+;Initialization
+ItoaL0:
+	
+	xor  	r15, r15							;r15: char count = 0
+	mov 	r14, rdx							;r14: buffer
+	mov 	rax, rcx							;rax: dividend
+ItoaL1:
+	;Comparison
+	cmp  	rax, 0								;check if fully converted
+	je  	ItoaL2
+	cmp 	r15, r8								;check if ran out of buffer
+	jg  	ItoaL2
+	;Loop
+	xor 	rdx, rdx							;[rdx:rax] = rax (zero rdx)
+	mov 	rdi, 10											
+												;rax / 10
+	div 	rdi 								;rax: Quotient, rdx: Remainder
+	
+	add 	rdx, 48								;convert to ascii char
+	push	rdx									;push remainter on stack
+	inc 	r15									;counter++
+	jmp 	ItoaL1
+ItoaL2:	;Processing characters to data buffer
+	;for (r13 = 0 , (loop counter)r13 < r15(char counter), r13++)
+	;Initialization
+	xor 	r13, r13 							;loop counter = 0
+ItoaL3:	
+	;Comparison
+	cmp 	r13, r15							;if r13 < r15 -> enter loop
+	jl  	ItoaL4								;else quit
+	jmp 	ItoaEnd
+ItoaL4:
+	pop 	rax
+	mov		byte [r14], al
+	inc 	r13
+	inc 	r14
+	jmp 	ItoaL3
+ItoaEnd:
+	mov 	eax, r15d							;return char count
+	
+	pop 	r13									;Callee save register
+	pop 	r14
+	pop 	r15
+	pop		rdi
+	
+	ret
+;========================================================================================================================================
+
 EndInvalid:
 	;Print invalid message
 	sub 	rsp, 32								;Shadow store
@@ -54,14 +117,44 @@ EndInvalid:
 	jmp 	End
 
 EndError:
+	;r15 = HeapAlloc(hHeap, HEAP_ZERO_MEMORY, 1024)
+	sub 	rsp, 32
+	mov     r8d, 400h       					;dwBytes: 1024
+	mov     edx, 8          					;dwFlags: HEAP_ZERO_MEMORY
+	mov		rcx, [hHeap] 						;hHeap
+	call    HeapAlloc
+	add 	rsp, 32
+	mov 	r15, rax
+
 	;Print error message
 	sub 	rsp, 32								;Shadow store
 	mov		rcx, [hStdout]						;hStdout
-	mov 	rdx, errormsg						;"Invalid input"
-	mov 	r8d, errormsglen					;14
+	mov		rdx, errormsg						;"Some error occured "
+	mov 	r8d, errormsglen					;19
 	mov		r9, [rbp-16]						;&writtenlen
 	push 	0
-	call 	WriteConsoleA						;WriteConsoleA(hStdout, "Invalid input", 14, &writtenlen, 0);
+	call 	WriteConsoleA						;WriteConsoleA(hStdout, "Some error occured ", 19, &writtenlen, 0);
+	add		rsp, 40								;Shadow store + clean up paramenter
+
+	;GetLastError()
+	call 	GetLastError
+
+	;Convert error code to string
+	sub 	rsp, 32
+	mov		rcx, rax
+	mov 	rdx, r15
+	mov 	r8, 1024
+	call 	Itoa								;int writtenlen[rax] Itoa(int64[rcx], void* buf[rdx], int bufferlen[r8])
+	add 	rsp, 32
+
+	;Print error code string
+	sub 	rsp, 32								;Shadow store
+	mov		rcx, [hStdout]						;hStdout
+	mov 	rdx, r15							;Buffer store error code
+	mov 	r8, rax								;Buffer length
+	mov		r9, [rbp-16]						;&writtenlen
+	push 	0
+	call 	WriteConsoleA						;WriteConsoleA(hStdout, errorcode, errorcodelen, &writtenlen, 0);
 	add		rsp, 40								;Shadow store + clean up paramenter
 
 	jmp 	End
@@ -153,9 +246,9 @@ Start:
 	
 	;LPVOID buffer = HeapAlloc(hHeap, HEAP_ZERO_MEMORY, 1024)
 	sub 	rsp, 32
-	mov     r8d, 400h       						;dwBytes: 1024
+	mov     r8d, 1024       						;dwBytes: 1024
 	mov     edx, 8          						;dwFlags: HEAP_ZERO_MEMORY
-	mov     rcx, [rbp-40] 							;hHeap
+	mov     rcx, [hHeap] 							;hHeap
 	call    HeapAlloc
 	add 	rsp, 32
 	
@@ -230,9 +323,10 @@ Start:
 	
 	;LPVOID out = HeapAlloc(hHeap, HEAP_ZERO_MEMORY, writtenlen)
 	sub 	rsp, 32
-	mov 	r8d, [rbp-16]							
-	mov 	edx, 8											
-	mov 	rcx, [hHeap]									
+	mov 	r8d, [rbp-16]							;writtenlen
+	mov 	edx, 8									;HEAP_ZERO_MEMORY
+	mov 	rcx, [hHeap]							;hHeap
+	call 	HeapAlloc								
 	add		rsp, 32			
 
 	mov 	[rbp-64], rax
