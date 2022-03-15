@@ -78,7 +78,8 @@ Start:
 	sub		rsp, 64								;Allocate 64 bytes in stack
 	;x64 calling convention : left->right RCX, RDX, R8, R9
 	;Local variable:
-	;offset -56 : DWORD byteread //Include \r\n when read from console
+	;offset -64  : LPVOID out
+	;offset -56  : DWORD byteread 
 	;offset -48  : LPVOID buffer
 	;offset -40  : HANDLE hFile
 	;offset -32  : LPWSTR* cmdarr
@@ -135,18 +136,18 @@ Start:
 	;Create a file stream
 	;HANDLE hFile = CreateFileW(filepath, GENERIC_READ, FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
 	sub 	rsp, 32
-	mov 	rcx, [rax]								;lpFileName: cmdarr[1]
-	mov 	edx, 0x80								;dwDesiredAccess: GENERIC_READ
-	mov 	r8d, 1									;dwShareMode: FILE_SHARE_WRITE
-	xor 	r9, r9									;lpSecurityAttributes: null
-	push 	0										;hTemplateFile: null
-	push	0x00000080								;dwFlagsAndAttributes: FILE_ATTRIBUTE_NORMAL
+	push 	0										;hTemplateFile: nullptr
+	push	128										;dwFlagsAndAttributes: FILE_ATTRIBUTE_NORMAL
 	push	3										;dwCreationDisposition: OPEN_EXISTING
+	xor 	r9, r9									;lpSecurityAttributes: null
+	mov 	r8d, 2									;dwShareMode: FILE_SHARE_WRITE
+	mov 	edx, 0x80000000							;dwDesiredAccess: GENERIC_READ
+	mov 	rcx, [rax]								;lpFileName: cmdarr[1]
 	call 	CreateFileW							
 	add 	rsp, 56
 	
 	cmp 	rax, -1									;Check return value is INVALID_HANDLE_VALUE
-	je  	EndInvalid
+	je  	EndError
 
 	mov  	[rbp-40], rax							;HANDLE hFile
 	
@@ -208,41 +209,54 @@ Start:
 	
 	;WriteConsoleA(hStdout, "e_cblp - Bytes on last page of file : ", 39, &writtenlen, nullptr)
 	sub 	rsp, 32
-	push 	0
-	lea 	r9, [rbp-16]
-	mov 	r8d, 39
-	mov 	rdx, e_cblp
-	mov 	rcx, [hStdout]
+	push 	0                                       ;
+	lea 	r9, [rbp-16]                            ;
+	mov 	r8d, 39                                 ;
+	mov 	rdx, e_cblp                             ;
+	mov 	rcx, [hStdout]                          ;
+	add 	rsp, 40                                 
+						
+	;Increase iterator to 2
+	add 	rbx, 2                                  
+	;CryptBinaryToStringA((BYTE*)buffer + 2, 2, CRYPT_STRING_HEXASCII, nullptr, &writtenlen)
+	sub 	rsp, 32                                 
+	lea 	rax, [rbp-16]                           ;
+	push 	rax                                     ;
+	xor 	r9, r9                                  ;
+	mov 	r8d, 5                                  ;
+	mov 	rdx, 2                                  ;
+	mov 	rcx, rbx                                ;
 	add 	rsp, 40
 	
-	add 	rbx, 2
-	;CryptBinaryToStringA((BYTE*)buffer + 2, 2, CRYPT_STRING_HEXASCII, nullptr, &writtenlen)
+	;LPVOID out = HeapAlloc(hHeap, HEAP_ZERO_MEMORY, writtenlen)
 	sub 	rsp, 32
-	lea 	rax, [rbp-16]
-	push 	rax
-	xor 	r9, r9
+	mov 	r8d, [rbp-16]							
+	mov 	edx, 8											
+	mov 	rcx, [hHeap]									
+	add		rsp, 32			
+
+	mov 	[rbp-64], rax
+	
+	;CryptBinaryToStringA((BYTE*)buffer + 2, 2, CRYPT_STRING_HEXASCII, (LPSTR)out, &writtenlen)
+	sub 	rsp, 32
+	lea 	r15, [rbp-16]
+	push 	r15
+	mov	 	r9, rax									;LPVOID out
 	mov 	r8d, 5
 	mov 	rdx, 2
 	mov 	rcx, rbx
 	add 	rsp, 40
 	
-	;LPVOID out = HeapAlloc(hHeap, HEAP_ZERO_MEMORY, writtenlen)
+	;WriteConsoleA(hStdout, out, 5, &writtenlen, nullptr)
 	sub 	rsp, 32
-	mov 	r8d, [rbp-16]
-	mov 	edx, 8
-	mov 	rcx, [hHeap]
-	add		rsp, 32
-	
-	;WriteConsoleA(hStdout, buffer, 2, &nop, nullptr)
-	sub 	rsp, 32
-	push 	0
-	lea 	r9, [rbp-16]
-	mov 	r8d, 2
-	mov 	rdx, rbx
+	push 	0										;nullptr
+	lea 	r9, [rbp-16]							;LPDWORD writtenlen
+	mov 	r8d, 5									;5
+	mov 	rdx, [rbp-64]							;LPVOID out
 	mov 	rcx, [hStdout]
 	add 	rsp, 40
 	
-	;WriteConsoleA(hStdout, crlf, 2, &nop, nullptr)
+	;WriteConsoleA(hStdout, crlf, 2, &writtenlen, nullptr)
 	sub 	rsp, 32
 	push 	0
 	lea		r9, [rbp-16]
