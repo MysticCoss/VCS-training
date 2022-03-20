@@ -188,11 +188,11 @@ Start:
 	jbe		End
 	
 	;b = HeapReAlloc(hHeap, 0, b, blen)
-	sub 	rsp, 32								;Shadow store
 	mov 	rcx, [hHeap]						;hHeap
 	xor 	rdx, rdx							;0 - no flag
 	mov 	r8, [rbp-40]						;ptr b
 	mov 	r9d, [rbp-16]						;blen
+	sub 	rsp, 32								;Shadow store
 	call	HeapReAlloc							;b = HeapAlloc(hHeap, 0, b, blen)
 	mov 	[rbp-40], rax
 	add 	rsp, 32
