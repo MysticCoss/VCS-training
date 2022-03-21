@@ -84,6 +84,20 @@ segment .data
 	nt_len			equ $-nt2
 	signature		db "PE signature :                                 ", 0
 	signature_len	equ $-signature
+	machine			db "Machine :                                      ", 0
+	machine_len		equ $-machine
+	numberofsection db "Number of section :                            ", 0
+	numberofsection_len equ $-numberofsection
+	timedatestamp	db "Time date stamp :                              ", 0
+	timedatestamp_len	equ $-timedatestamp
+	pointersymbol	db "Pointer to symbol table :                      ", 0
+	pointersymbol_len equ $-pointersymbol
+	numsymbol		db "Number of symbol :                             ", 0
+	numsymbol_len	equ $-numsymbol
+	sizeopthdr		db "Size of optional header :                      ", 0
+	sizeopthdr_len	equ $-sizeopthdr
+	characteristics db "Characteristics :                              ", 0
+	characteristics_len equ $-characteristics
 segment .bss
 	hStdin resq 1
 	hStdout resq 1
@@ -2223,6 +2237,242 @@ Start:
 	mov 	r8d, 5									;DWORD   dwFlags	 : CRYPT_STRING_HEXASCII
 	mov 	rdx, 4									;DWORD   cbBinary	 : 4
 	mov 	rcx, rbx								;BYTE 	 *pbBinary	 : buffer + 60
+	sub 	rsp, 32									
+	call 	CryptBinaryToStringA
+	add 	rsp, 40
+
+	;WriteConsoleA(hStdout, out, writtenlen, &writtenlen, nullptr)
+	push 	0										;LPVOID  lpReserved 			: nullptr
+	lea 	r9, [rbp-16]							;LPDWORD lpNumberOfCharsWritten : &writtenlen
+	mov 	r8d, [rbp-16]							;DWORD   nNumberOfCharsToWrite 	: writtenlen
+	mov 	rdx, [rbp-64]							;VOID    *lpBuffer 				: out
+	mov 	rcx, [hStdout]                          ;HANDLE  hConsoleOutput			: hStdout
+	sub 	rsp, 32
+	call 	WriteConsoleA
+	add 	rsp, 40	
+	
+	
+	;// IMAGE FILE HEADER
+	
+	;//Machine
+	;WriteConsoleA(hStdout, "Machine :                                      ", machine_len, &writtenlen, nullptr)
+	push 	0										;LPVOID  lpReserved 			: nullptr
+	lea 	r9, [rbp-16]							;LPDWORD lpNumberOfCharsWritten : &writtenlen
+	mov 	r8d, machine_len						;DWORD   nNumberOfCharsToWrite 	: machine_len
+	mov 	rdx, machine							;VOID    *lpBuffer 				: signature
+	mov 	rcx, [hStdout]							;HANDLE  hConsoleOutput			: hStdout
+	sub 	rsp, 32
+	call 	WriteConsoleA
+	add 	rsp, 40
+						
+	;Increase iterator to 4
+	add		rbx, 4
+	
+	;call CryptBinaryToStringA with pszString paramenter null to calculate output buffer size (in TCHAR)
+	;CryptBinaryToStringA((BYTE*)buffer + e_lfanew + 4, 2, CRYPT_STRING_HEXASCII, nullptr, &writtenlen)                               
+	lea 	rax, [rbp-16]							
+	push 	rax										;DWORD   *pcchString : &writtenlen;
+	xor 	r9, r9									;LPSTR   pszString   : null
+	mov 	r8d, 5									;DWORD   dwFlags	 : CRYPT_STRING_HEXASCII;
+	mov 	rdx, 2									;DWORD   cbBinary	 : 2;
+	mov 	rcx, rbx								;BYTE 	 *pbBinary	 : buffer + e_lfanew + 4;
+	sub 	rsp, 32
+	call 	CryptBinaryToStringA
+	add 	rsp, 40
+	
+	;LPVOID out = HeapReAlloc(hHeap, HEAP_ZERO_MEMORY, out, writtenlen)
+	mov 	r9d, [rbp-16]							;SIZE_T  dwBytes : writtenlen
+	mov 	r8, [rbp-64]							;LPVOID  lpMem 	 : out
+	mov 	edx, 8                                  ;DWORD   dwFlags : HEAP_ZERO_MEMORY
+	mov 	rcx, [hHeap]                            ;HANDLE  hHeap	 : hHeap
+	sub 	rsp, 32
+	call 	HeapReAlloc								
+	add		rsp, 32						
+
+	mov 	[rbp-64], rax
+	
+	;CryptBinaryToStringA((BYTE*)buffer + e_lfanew + 4, 2, CRYPT_STRING_HEXASCII, (LPSTR)out, &writtenlen)
+	lea 	r15, [rbp-16]
+	push 	r15										;DWORD   *pcchString : &writtenlen
+	mov	 	r9, rax									;LPSTR   pszString   : out
+	mov 	r8d, 5									;DWORD   dwFlags	 : CRYPT_STRING_HEXASCII
+	mov 	rdx, 2									;DWORD   cbBinary	 : 2
+	mov 	rcx, rbx								;BYTE 	 *pbBinary	 : buffer + e_lfanew + 4
+	sub 	rsp, 32									
+	call 	CryptBinaryToStringA
+	add 	rsp, 40
+
+	;WriteConsoleA(hStdout, out, writtenlen, &writtenlen, nullptr)
+	push 	0										;LPVOID  lpReserved 			: nullptr
+	lea 	r9, [rbp-16]							;LPDWORD lpNumberOfCharsWritten : &writtenlen
+	mov 	r8d, [rbp-16]							;DWORD   nNumberOfCharsToWrite 	: writtenlen
+	mov 	rdx, [rbp-64]							;VOID    *lpBuffer 				: out
+	mov 	rcx, [hStdout]                          ;HANDLE  hConsoleOutput			: hStdout
+	sub 	rsp, 32
+	call 	WriteConsoleA
+	add 	rsp, 40	
+
+	
+	;//NumberOfSections
+	;WriteConsoleA(hStdout, "Number of section :                            ", numberofsection_len, &writtenlen, nullptr)
+	push 	0										;LPVOID  lpReserved 			: nullptr
+	lea 	r9, [rbp-16]							;LPDWORD lpNumberOfCharsWritten : &writtenlen
+	mov 	r8d, numberofsection_len				;DWORD   nNumberOfCharsToWrite 	: numberofsection_len
+	mov 	rdx, numberofsection					;VOID    *lpBuffer 				: numberofsection
+	mov 	rcx, [hStdout]							;HANDLE  hConsoleOutput			: hStdout
+	sub 	rsp, 32
+	call 	WriteConsoleA
+	add 	rsp, 40
+						
+	;Increase iterator to 2
+	add		rbx, 2
+	
+	;call CryptBinaryToStringA with pszString paramenter null to calculate output buffer size (in TCHAR)
+	;CryptBinaryToStringA((BYTE*)buffer + e_lfanew + 6, 2, CRYPT_STRING_HEXASCII, nullptr, &writtenlen)                               
+	lea 	rax, [rbp-16]							
+	push 	rax										;DWORD   *pcchString : &writtenlen;
+	xor 	r9, r9									;LPSTR   pszString   : null
+	mov 	r8d, 5									;DWORD   dwFlags	 : CRYPT_STRING_HEXASCII;
+	mov 	rdx, 2									;DWORD   cbBinary	 : 2;
+	mov 	rcx, rbx								;BYTE 	 *pbBinary	 : buffer + e_lfanew + 6;
+	sub 	rsp, 32
+	call 	CryptBinaryToStringA
+	add 	rsp, 40
+	
+	;LPVOID out = HeapReAlloc(hHeap, HEAP_ZERO_MEMORY, out, writtenlen)
+	mov 	r9d, [rbp-16]							;SIZE_T  dwBytes : writtenlen
+	mov 	r8, [rbp-64]							;LPVOID  lpMem 	 : out
+	mov 	edx, 8                                  ;DWORD   dwFlags : HEAP_ZERO_MEMORY
+	mov 	rcx, [hHeap]                            ;HANDLE  hHeap	 : hHeap
+	sub 	rsp, 32
+	call 	HeapReAlloc								
+	add		rsp, 32						
+
+	mov 	[rbp-64], rax
+	
+	;CryptBinaryToStringA((BYTE*)buffer + e_lfanew + 6, 2, CRYPT_STRING_HEXASCII, (LPSTR)out, &writtenlen)
+	lea 	r15, [rbp-16]
+	push 	r15										;DWORD   *pcchString : &writtenlen
+	mov	 	r9, rax									;LPSTR   pszString   : out
+	mov 	r8d, 5									;DWORD   dwFlags	 : CRYPT_STRING_HEXASCII
+	mov 	rdx, 2									;DWORD   cbBinary	 : 2
+	mov 	rcx, rbx								;BYTE 	 *pbBinary	 : buffer + e_lfanew + 6
+	sub 	rsp, 32									
+	call 	CryptBinaryToStringA
+	add 	rsp, 40
+
+	;WriteConsoleA(hStdout, out, writtenlen, &writtenlen, nullptr)
+	push 	0										;LPVOID  lpReserved 			: nullptr
+	lea 	r9, [rbp-16]							;LPDWORD lpNumberOfCharsWritten : &writtenlen
+	mov 	r8d, [rbp-16]							;DWORD   nNumberOfCharsToWrite 	: writtenlen
+	mov 	rdx, [rbp-64]							;VOID    *lpBuffer 				: out
+	mov 	rcx, [hStdout]                          ;HANDLE  hConsoleOutput			: hStdout
+	sub 	rsp, 32
+	call 	WriteConsoleA
+	add 	rsp, 40	
+
+	;//TimeDateStamp 
+	;WriteConsoleA(hStdout, "Time date stamp :                              ", timedatestamp_len, &writtenlen, nullptr)
+	push 	0										;LPVOID  lpReserved 			: nullptr
+	lea 	r9, [rbp-16]							;LPDWORD lpNumberOfCharsWritten : &writtenlen
+	mov 	r8d, timedatestamp_len						;DWORD   nNumberOfCharsToWrite 	: timedatestamp_len
+	mov 	rdx, timedatestamp							;VOID    *lpBuffer 				: timedatestamp
+	mov 	rcx, [hStdout]							;HANDLE  hConsoleOutput			: hStdout
+	sub 	rsp, 32
+	call 	WriteConsoleA
+	add 	rsp, 40
+						
+	;Increase iterator to 2
+	add		rbx, 2   
+	
+	;call CryptBinaryToStringA with pszString paramenter null to calculate output buffer size (in TCHAR)
+	;CryptBinaryToStringA((BYTE*)buffer + e_lfanew + 8, 4, CRYPT_STRING_HEXASCII, nullptr, &writtenlen)                               
+	lea 	rax, [rbp-16]							
+	push 	rax										;DWORD   *pcchString : &writtenlen;
+	xor 	r9, r9									;LPSTR   pszString   : null
+	mov 	r8d, 5									;DWORD   dwFlags	 : CRYPT_STRING_HEXASCII;
+	mov 	rdx, 4									;DWORD   cbBinary	 : 4;
+	mov 	rcx, rbx								;BYTE 	 *pbBinary	 : buffer + e_lfanew + 8;
+	sub 	rsp, 32
+	call 	CryptBinaryToStringA
+	add 	rsp, 40
+	
+	;LPVOID out = HeapReAlloc(hHeap, HEAP_ZERO_MEMORY, out, writtenlen)
+	mov 	r9d, [rbp-16]							;SIZE_T  dwBytes : writtenlen
+	mov 	r8, [rbp-64]							;LPVOID  lpMem 	 : out
+	mov 	edx, 8                                  ;DWORD   dwFlags : HEAP_ZERO_MEMORY
+	mov 	rcx, [hHeap]                            ;HANDLE  hHeap	 : hHeap
+	sub 	rsp, 32
+	call 	HeapReAlloc								
+	add		rsp, 32						
+
+	mov 	[rbp-64], rax
+	
+	;CryptBinaryToStringA((BYTE*)buffer + e_lfanew + 8, 4, CRYPT_STRING_HEXASCII, (LPSTR)out, &writtenlen)
+	lea 	r15, [rbp-16]
+	push 	r15										;DWORD   *pcchString : &writtenlen
+	mov	 	r9, rax									;LPSTR   pszString   : out
+	mov 	r8d, 5									;DWORD   dwFlags	 : CRYPT_STRING_HEXASCII
+	mov 	rdx, 4									;DWORD   cbBinary	 : 4
+	mov 	rcx, rbx								;BYTE 	 *pbBinary	 : buffer + e_lfanew + 8
+	sub 	rsp, 32									
+	call 	CryptBinaryToStringA
+	add 	rsp, 40
+
+	;WriteConsoleA(hStdout, out, writtenlen, &writtenlen, nullptr)
+	push 	0										;LPVOID  lpReserved 			: nullptr
+	lea 	r9, [rbp-16]							;LPDWORD lpNumberOfCharsWritten : &writtenlen
+	mov 	r8d, [rbp-16]							;DWORD   nNumberOfCharsToWrite 	: writtenlen
+	mov 	rdx, [rbp-64]							;VOID    *lpBuffer 				: out
+	mov 	rcx, [hStdout]                          ;HANDLE  hConsoleOutput			: hStdout
+	sub 	rsp, 32
+	call 	WriteConsoleA
+	add 	rsp, 40	
+
+	;//PointerToSymbolTable 
+	;WriteConsoleA(hStdout, "Pointer to symbol table :                      ", pointersymbol_len, &writtenlen, nullptr)
+	push 	0										;LPVOID  lpReserved 			: nullptr
+	lea 	r9, [rbp-16]							;LPDWORD lpNumberOfCharsWritten : &writtenlen
+	mov 	r8d, pointersymbol_len						;DWORD   nNumberOfCharsToWrite 	: pointersymbol_len
+	mov 	rdx, pointersymbol							;VOID    *lpBuffer 				: pointersymbol
+	mov 	rcx, [hStdout]							;HANDLE  hConsoleOutput			: hStdout
+	sub 	rsp, 32
+	call 	WriteConsoleA
+	add 	rsp, 40
+						
+	;Increase iterator to 4
+	add		rbx, 4   
+	
+	;call CryptBinaryToStringA with pszString paramenter null to calculate output buffer size (in TCHAR)
+	;CryptBinaryToStringA((BYTE*)buffer + e_lfanew + 12, 4, CRYPT_STRING_HEXASCII, nullptr, &writtenlen)                               
+	lea 	rax, [rbp-16]							
+	push 	rax										;DWORD   *pcchString : &writtenlen;
+	xor 	r9, r9									;LPSTR   pszString   : null
+	mov 	r8d, 5									;DWORD   dwFlags	 : CRYPT_STRING_HEXASCII;
+	mov 	rdx, 4									;DWORD   cbBinary	 : 4;
+	mov 	rcx, rbx								;BYTE 	 *pbBinary	 : buffer + e_lfanew + 12;
+	sub 	rsp, 32
+	call 	CryptBinaryToStringA
+	add 	rsp, 40
+	
+	;LPVOID out = HeapReAlloc(hHeap, HEAP_ZERO_MEMORY, out, writtenlen)
+	mov 	r9d, [rbp-16]							;SIZE_T  dwBytes : writtenlen
+	mov 	r8, [rbp-64]							;LPVOID  lpMem 	 : out
+	mov 	edx, 8                                  ;DWORD   dwFlags : HEAP_ZERO_MEMORY
+	mov 	rcx, [hHeap]                            ;HANDLE  hHeap	 : hHeap
+	sub 	rsp, 32
+	call 	HeapReAlloc								
+	add		rsp, 32						
+
+	mov 	[rbp-64], rax
+	
+	;CryptBinaryToStringA((BYTE*)buffer + e_lfanew + 12, 4, CRYPT_STRING_HEXASCII, (LPSTR)out, &writtenlen)
+	lea 	r15, [rbp-16]
+	push 	r15										;DWORD   *pcchString : &writtenlen
+	mov	 	r9, rax									;LPSTR   pszString   : out
+	mov 	r8d, 5									;DWORD   dwFlags	 : CRYPT_STRING_HEXASCII
+	mov 	rdx, 4									;DWORD   cbBinary	 : 4
+	mov 	rcx, rbx								;BYTE 	 *pbBinary	 : buffer + e_lfanew + 12
 	sub 	rsp, 32									
 	call 	CryptBinaryToStringA
 	add 	rsp, 40
