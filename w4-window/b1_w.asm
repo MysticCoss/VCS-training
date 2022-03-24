@@ -119,15 +119,25 @@ segment .data
 	baseofdata		db "Base of data                                   ", 0
 	baseofdata_len equ $-baseofdata
 	imagebase		db "Image base :                                   ", 0
-	sectionalign	db "Section alignment : ", 0
-	majorosver		db "Major operating system version : ", 0
-	minorosver		db "Minor operation system version : ", 0
-	majorimgver		db "Major image version : ", 0
-	minorimgver		db "Minor image version : ", 0
-	majorsubsysver	db "Major subsystem version : ", 0
-	minorsubsysver	db "Minor subsystem version : ", 0
-	win32ver		db "Win32 version value : ", 0
-	sizeofimage		db "Size of image : ", 0
+	sectionalign	db "Section alignment :                            ", 0
+	majorosver		db "Major operating system version :               ", 0
+	minorosver		db "Minor operation system version :               ", 0
+	majorimgver		db "Major image version :                          ", 0
+	minorimgver		db "Minor image version :                          ", 0
+	majorsubsysver	db "Major subsystem version :                      ", 0
+	minorsubsysver	db "Minor subsystem version :                      ", 0
+	win32ver		db "Win32 version value :                          ", 0
+	sizeofimage		db "Size of image :                                ", 0
+	sizeofheader	db "Size of header :                               ", 0
+	checksum		db "Checksum :                                     ", 0
+	subsystem		db "Sub system :                                   ", 0
+	dllchar			db "Dll Characteristics :                          ", 0
+	sizeStackResv	db "Size Of Stack Reserve :                        ", 0
+	sizeofstackcom	db "Size Of Stack Commit :                         ", 0
+	sizeofheapres	db "Size Of Heap Reserve :                         ", 0
+	sizeofheapcom	db "Size of heap commit :                          ", 0
+	loaderflag		db "Loader Flags :                                 ", 0
+	numofrvaandsize	db "Number Of Rva And Sizes :                      ", 0
 segment .bss
 	hStdin resq 1
 	hStdout resq 1
@@ -3685,7 +3695,7 @@ PrintPE32:
 	mov		r8d, 2									;buffer length
 	call	PrintHex
 
-//win32 ver
+;//win32 ver
 
 	add 	rbx, 2
 
@@ -3694,26 +3704,108 @@ PrintPE32:
 	mov		r8d, 4									;buffer length
 	call	PrintHex
 
-//size of image
+;//size of image
 
-	add 	rbx, 2
-
-	mov 	rcx, sizeofimage						;Debug string
-	mov 	rdx, rbx								;buffer
-	mov		r8d, 4									;buffer length
-	call	PrintHex
-
-//size of image
-
-	add 	rbx, 2
+	add 	rbx, 4
 
 	mov 	rcx, sizeofimage						;Debug string
 	mov 	rdx, rbx								;buffer
 	mov		r8d, 4									;buffer length
 	call	PrintHex
 
+;//size of header
+
+	add 	rbx, 4
+
+	mov 	rcx, sizeofheader						;Debug string
+	mov 	rdx, rbx								;buffer
+	mov		r8d, 4									;buffer length
+	call	PrintHex
+
+;//check sum
+
+	add 	rbx, 4
+
+	mov 	rcx, checksum							;Debug string
+	mov 	rdx, rbx								;buffer
+	mov		r8d, 4									;buffer length
+	call	PrintHex	
+	
+;//subsystem
+	add 	rbx, 4
+
+	mov 	rcx, subsystem							;Debug string
+	mov 	rdx, rbx								;buffer
+	mov		r8d, 2									;buffer length
+	call	PrintHex
+
+;//Dllchar
+	add 	rbx, 2
+
+	mov 	rcx, dllchar							;Debug string
+	mov 	rdx, rbx								;buffer
+	mov		r8d, 2									;buffer length
+	call	PrintHex	
+	
+;//SizeOfStackReserve
+	add 	rbx, 2
+
+	mov 	rcx, sizeStackResv						;Debug string
+	mov 	rdx, rbx								;buffer
+	mov		r8d, 4									;buffer length
+	call	PrintHex		
+	
+;//SizeOfStackCommit
+	add 	rbx, 4
+
+	mov 	rcx, sizeofstackcom						;Debug string
+	mov 	rdx, rbx								;buffer
+	mov		r8d, 4									;buffer length
+	call	PrintHex		
+
+;//SizeOfHeapReversed
+	add 	rbx, 4
+
+	mov 	rcx, sizeofheapres						;Debug string
+	mov 	rdx, rbx								;buffer
+	mov		r8d, 4									;buffer length
+	call	PrintHex	
+
+;//SizeOfHeapCommit
+	add 	rbx, 4
+
+	mov 	rcx, sizeofheapcom						;Debug string
+	mov 	rdx, rbx								;buffer
+	mov		r8d, 4									;buffer length
+	call	PrintHex	
+
+;//LoaderFlags
+	add 	rbx, 4
+
+	mov 	rcx, loaderflag							;Debug string
+	mov 	rdx, rbx								;buffer
+	mov		r8d, 4									;buffer length
+	call	PrintHex	
+	
+	
+;//LoaderFlags
+	add 	rbx, 4
+
+	mov 	rcx, loaderflag							;Debug string
+	mov 	rdx, rbx								;buffer
+	mov		r8d, 4									;buffer length
+	call	PrintHex	
+
+;//NumberOfRvaAndSizes
+	add 	rbx, 4
+
+	mov 	rcx, numofrvaandsize					;Debug string
+	mov 	rdx, rbx								;buffer
+	mov		r8d, 4									;buffer length
+	call	PrintHex		
 	jmp		End
 
+	
 PrintPE64:
 
 	jmp		End
@@ -3835,7 +3927,7 @@ EndError:
 	push 	0
 	call 	WriteConsoleA						;WriteConsoleA(hStdout, errorcode, errorcodelen, &writtenlen, 0);
 	add		rsp, 40								;Shadow store + clean up paramenter
-
+	
 	jmp 	End
 
 End:
@@ -3850,9 +3942,14 @@ PrintHex: ;rcx: Debug string, rdx: data to print, r8d: data size in byte
 	mov 	rbp, rsp
 
 	sub 	rsp, 16
-
+	
+	push 	r13
+	push 	r14
+	push	r15
+	
 	mov 	r14, rdx
 	mov 	r15, r8
+	mov 	r13, rcx
 	
 
 	call	lstrlenA
@@ -3861,9 +3958,9 @@ PrintHex: ;rcx: Debug string, rdx: data to print, r8d: data size in byte
 	;WriteConsoleA(hStdout, minorsubsysver, lstrlenA(minorsubsysver), &writtenlen, nullptr)
 
 	push 	0										;LPVOID  lpReserved 			: nullptr
-	lea 	r9, [rbp-8]							;LPDWORD lpNumberOfCharsWritten : &writtenlen
+	lea 	r9, [rbp-8]								;LPDWORD lpNumberOfCharsWritten : &writtenlen
 													;DWORD   nNumberOfCharsToWrite 	: lstrlenA(minorsubsysver)
-	mov 	rdx, minorsubsysver						;VOID    *lpBuffer 				: baseofdata
+	mov 	rdx, r13								;VOID    *lpBuffer 				: baseofdata
 	mov 	rcx, [hStdout]							;HANDLE  hConsoleOutput			: hStdout
 	sub 	rsp, 32
 	call 	WriteConsoleA
@@ -3919,7 +4016,13 @@ PrintHex: ;rcx: Debug string, rdx: data to print, r8d: data size in byte
 	mov 	r8, [rbp-16]
 	xor 	rdx, rdx
 	mov 	rcx, [hHeap]
+	sub 	rsp, 32
 	call	HeapFree
-
+	add 	rsp, 32
+	
+	pop 	r15
+	pop		r14
+	pop		r13
+	
 	leave
 	ret
