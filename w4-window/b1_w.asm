@@ -109,7 +109,19 @@ segment .data
 	exportsize		db "Export size :                                  ", 0
 	importrva		db "Import RVA :                                   ", 0
 	importsize		db "Import size :                                  ", 0
-	
+
+	;IMAGE SECTION HEADER
+	sectionname		db "Section name :                                 ", 0
+    physicaladdress	db "Physical address :                             ", 0 	
+    virtualsize		db "Virtual size :                                 ", 0
+    virtualaddress	db "Virtual address :                              ", 0
+    sizeofrawdata	db "", 0
+    pointerrawdata	db "", 0
+    pointerreloc	db "", 0
+    pointerlinenum	db "", 0
+    numofrelocation	db "", 0
+    numoflinenumber	db "", 0
+    icharacteristic	db "", 0
 segment .bss
 	hStdin resq 1
 	hStdout resq 1
@@ -1005,9 +1017,49 @@ PrintPE32:
 	mov		r8d, 4									;buffer length
 	call	PrintHex	
 	
+	
+
+;IMAGE SECTION HEADER
+;Name
+	add		rbx, 4
+
+	mov 	rcx, sectionname
+	mov 	rdx, rbx
+	mov 	r8d, 8
+	call	PrintHex
+
+;PhysicalAddress
+	add 	rbx, 8
+
+	mov 	rcx, physicaladdress
+	mov 	rdx, rbx
+	mov 	r8d, 4
+	call	PrintHex
+
+;VirtualSize
+	add 	rbx, 4
+
+	mov 	rcx, virtualsize
+	mov 	rdx, rbx
+	mov 	r8d, 4
+	call	PrintHex
+;VirtualAddress
+;VirtualSize
+	add 	rbx, 4
+
+	mov 	rcx, virtualaddress
+	mov 	rdx, rbx
+	mov 	r8d, 4
+	call	PrintHex
+;SizeOfRawData
+;PointerToRawData
+;PointerToRelocations
+;PointerToLinenumbers
+;NumberOfRelocations
+;NumberOfLinenumbers
+;Characteristics
+
 	jmp		End
-	
-	
 PrintPE64:
 
 	jmp		End
