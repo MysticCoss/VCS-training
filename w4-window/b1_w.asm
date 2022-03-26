@@ -115,7 +115,7 @@ segment .data
     physicaladdress	db "Physical address :                             ", 0 	
     virtualsize		db "Virtual size :                                 ", 0
     virtualaddress	db "Virtual address :                              ", 0
-    sizeofrawdata	db "", 0
+    sizeofrawdata	db "Size of raw data :                             ", 0
     pointerrawdata	db "", 0
     pointerreloc	db "", 0
     pointerlinenum	db "", 0
@@ -150,9 +150,11 @@ global Start
 Start:
     push    rbp 			
     mov     rbp, rsp		
-	sub		rsp, 64								;Allocate 64 bytes in stack
+	sub		rsp, 128								;Allocate 128 bytes in stack
 	;x64 calling convention : left->right RCX, RDX, R8, R9
 	;Local variable:
+	;offset -80  : WORD sizeofoptionalheader
+	;offset -72  : LPVOID optionalheaderbase
 	;offset -64  : LPVOID out
 	;offset -56  : DWORD byteread 
 	;offset -48  : LPVOID buffer
@@ -709,7 +711,11 @@ Start:
 	
 ;SizeOfOptionalHeader
 	add 	rbx, 4
-
+	
+	;store size of optional header
+	movzx	rax, word [rbx]
+	mov		word [rbp-80], ax	
+	
 	mov 	rcx, sizeopthdr							;Debug string
 	mov 	rdx, rbx								;buffer
 	mov		r8d, 2									;buffer length
@@ -730,6 +736,9 @@ Start:
 ;Magic 
 	add 	rbx, 2
 
+	;Store Image optional header's base
+	mov 	[rbp-72], rbx
+	
 	mov 	rcx, magic								;Debug string
 	mov 	rdx, rbx								;buffer
 	mov		r8d, 2									;buffer length
@@ -1018,36 +1027,42 @@ PrintPE32:
 	call	PrintHex	
 	
 	
+	;calculate section table offset
+	mov 	rcx, [rbp-72]
+	movzx	rdx, word [rbp-80]
+	add		rcx, rdx
+	
+	mov		rbx, rcx
+
+
+
 
 ;IMAGE SECTION HEADER
 ;Name
-	add		rbx, 4
 
 	mov 	rcx, sectionname
 	mov 	rdx, rbx
 	mov 	r8d, 8
 	call	PrintHex
 
-;PhysicalAddress
-	add 	rbx, 8
-
-	mov 	rcx, physicaladdress
-	mov 	rdx, rbx
-	mov 	r8d, 4
-	call	PrintHex
-
 ;VirtualSize
-	add 	rbx, 4
+	add 	rbx, 8
 
 	mov 	rcx, virtualsize
 	mov 	rdx, rbx
 	mov 	r8d, 4
 	call	PrintHex
 ;VirtualAddress
-;VirtualSize
 	add 	rbx, 4
 
 	mov 	rcx, virtualaddress
+	mov 	rdx, rbx
+	mov 	r8d, 4
+	call	PrintHex
+;SizeOfRawData
+	add 	rbx, 4
+
+	mov 	rcx, sizeofrawdata
 	mov 	rdx, rbx
 	mov 	r8d, 4
 	call	PrintHex
