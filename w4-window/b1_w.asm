@@ -75,6 +75,9 @@ segment .data
 	characteristics db "Characteristics :                              ", 0
 
 	;IMAGE OPTIONAL HEADER
+	ioh1			db "+--------------------------------------------------------------------------------------------------+", 0
+	ioh2			db "|                                       IMAGE OPTIONAL HEADER                                      |", 0
+	ioh_len			equ $-ioh2
 	magic			db "Magic :                                        ", 0
 	majorlinkver	db "Major link version :                           ", 0
 	minorlinkver	db "Minor link version :                           ", 0
@@ -111,17 +114,21 @@ segment .data
 	importsize		db "Import size :                                  ", 0
 
 	;IMAGE SECTION HEADER
+	ish1			db "+--------------------------------------------------------------------------------------------------+", 0
+	ish2			db "|                                       IMAGE SECTION HEADER                                       |", 0
+	ish_len			equ $-ish2
 	sectionname		db "Section name :                                 ", 0
     physicaladdress	db "Physical address :                             ", 0 	
     virtualsize		db "Virtual size :                                 ", 0
     virtualaddress	db "Virtual address :                              ", 0
     sizeofrawdata	db "Size of raw data :                             ", 0
-    pointerrawdata	db "", 0
-    pointerreloc	db "", 0
-    pointerlinenum	db "", 0
-    numofrelocation	db "", 0
-    numoflinenumber	db "", 0
-    icharacteristic	db "", 0
+    pointerrawdata	db "Pointer to raw data :                          ", 0
+    pointerreloc	db "Pointer to relocations :                       ", 0
+    pointerlinenum	db "Pointer to line numbers :                      ", 0
+    numofrelocation	db "Number of relocations :                        ", 0
+    numoflinenumber	db "Number of line numbers :                       ", 0
+    icharacteristic	db "Characteristics :                              ", 0
+	
 segment .bss
 	hStdin resq 1
 	hStdout resq 1
@@ -153,6 +160,9 @@ Start:
 	sub		rsp, 128								;Allocate 128 bytes in stack
 	;x64 calling convention : left->right RCX, RDX, R8, R9
 	;Local variable:
+	;offset -104 : WORD* numberofsection
+	;offset -96  : DWORD* importrva
+	;offset -88  : DWORD* exportrva
 	;offset -80  : WORD sizeofoptionalheader
 	;offset -72  : LPVOID optionalheaderbase
 	;offset -64  : LPVOID out
@@ -598,8 +608,7 @@ Start:
 	
 	
 	
-	;NT HEADER
-	
+;NT HEADER
 	;WriteConsoleA(hStdout, "+--------------------------------------------------------------------+", dos_len, &writtenlen, nullptr)
 	push 	0
 	lea 	r9, [rbp-16]
@@ -661,13 +670,15 @@ Start:
 	add 	rsp, 40
 	
 	
-;/Signature 
+;Signature 
 	mov 	rcx, signature							;Debug string
 	mov 	rdx, rbx								;buffer
 	mov		r8d, 4									;buffer length
 	call	PrintHex	
+
+
 	
-	; IMAGE FILE HEADER
+; IMAGE FILE HEADER
 	
 ;Machine
 	add 	rbx, 4
@@ -679,7 +690,10 @@ Start:
 	
 ;NumberOfSections
 	add 	rbx, 2
-
+	
+	;Store number of section for later processing
+	mov 	qword [rbp-104], rbx 
+	
 	mov 	rcx, numberofsection					;Debug string
 	mov 	rdx, rbx								;buffer
 	mov		r8d, 2									;buffer length
@@ -733,6 +747,66 @@ Start:
 
 ;IMAGE OPTIONAL HEADER
 
+	;WriteConsoleA(hStdout, "+--------------------------------------------------------------------+", dos_len, &writtenlen, nullptr)
+	push 	0
+	lea 	r9, [rbp-16]
+	mov 	r8d, ioh_len
+	mov 	rdx, ioh1
+	mov 	rcx, [hStdout]
+	sub 	rsp, 32
+	call 	WriteConsoleA
+	add 	rsp, 40
+	
+	;WriteConsoleA(hStdout, crlf, 2, &writtenlen, nullptr)
+	push 	0
+	lea 	r9, [rbp-16]
+	mov 	r8d, 2
+	mov 	rdx, crlf
+	mov 	rcx, [hStdout]
+	sub 	rsp, 32
+	call 	WriteConsoleA
+	add 	rsp, 40
+	
+	;WriteConsoleA(hStdout, "|                                       IMAGE OPTIONAL HEADER                                      |", dos_len, &writtenlen, nullptr)
+	push 	0
+	lea 	r9, [rbp-16]
+	mov 	r8d, ioh_len
+	mov 	rdx, ioh2
+	mov 	rcx, [hStdout]
+	sub 	rsp, 32
+	call 	WriteConsoleA
+	add 	rsp, 40
+
+	;WriteConsoleA(hStdout, crlf, 2, &writtenlen, nullptr)
+	push 	0
+	lea 	r9, [rbp-16]
+	mov 	r8d, 2
+	mov 	rdx, crlf
+	mov 	rcx, [hStdout]
+	sub 	rsp, 32
+	call 	WriteConsoleA
+	add 	rsp, 40
+
+	;WriteConsoleA(hStdout, "+--------------------------------------------------------------------+", dos_len, &writtenlen, nullptr)
+	push 	0
+	lea 	r9, [rbp-16]
+	mov 	r8d, ioh_len
+	mov 	rdx, ioh1
+	mov 	rcx, [hStdout]
+	sub 	rsp, 32
+	call 	WriteConsoleA
+	add 	rsp, 40
+	
+	;WriteConsoleA(hStdout, crlf, 2, &writtenlen, nullptr)
+	push 	0
+	lea 	r9, [rbp-16]
+	mov 	r8d, 2
+	mov 	rdx, crlf
+	mov 	rcx, [hStdout]
+	sub 	rsp, 32
+	call 	WriteConsoleA
+	add 	rsp, 40
+	
 ;Magic 
 	add 	rbx, 2
 
@@ -997,6 +1071,8 @@ PrintPE32:
 ;ExportDirectory RVA Address
 	add		rbx, 4
 	
+	mov 	qword [rbp-88], rbx
+	
 	mov 	rcx, exportrva							;Debug string
 	mov 	rdx, rbx								;buffer
 	mov		r8d, 4									;buffer length
@@ -1013,6 +1089,8 @@ PrintPE32:
 ;ImportDirectory RVA Address
 	add		rbx, 4
 	
+	mov 	qword [rbp-96], rbx
+	
 	mov 	rcx, importrva							;Debug string
 	mov 	rdx, rbx								;buffer
 	mov		r8d, 4									;buffer length
@@ -1025,19 +1103,84 @@ PrintPE32:
 	mov 	rdx, rbx								;buffer
 	mov		r8d, 4									;buffer length
 	call	PrintHex	
+
+
 	
+;IMAGE SECTION HEADER
 	
 	;calculate section table offset
 	mov 	rcx, [rbp-72]
 	movzx	rdx, word [rbp-80]
-	add		rcx, rdx
-	
+	add		rcx, rdx	
 	mov		rbx, rcx
 
+	;WriteConsoleA(hStdout, "+--------------------------------------------------------------------+", dos_len, &writtenlen, nullptr)
+	push 	0
+	lea 	r9, [rbp-16]
+	mov 	r8d, ish_len
+	mov 	rdx, ish1
+	mov 	rcx, [hStdout]
+	sub 	rsp, 32
+	call 	WriteConsoleA
+	add 	rsp, 40
+	
+	;WriteConsoleA(hStdout, crlf, 2, &writtenlen, nullptr)
+	push 	0
+	lea 	r9, [rbp-16]
+	mov 	r8d, 2
+	mov 	rdx, crlf
+	mov 	rcx, [hStdout]
+	sub 	rsp, 32
+	call 	WriteConsoleA
+	add 	rsp, 40
+	
+	;WriteConsoleA(hStdout, "|                                       IMAGE SECTION HEADER                                       |", dos_len, &writtenlen, nullptr)
+	push 	0
+	lea 	r9, [rbp-16]
+	mov 	r8d, ish_len
+	mov 	rdx, ish2
+	mov 	rcx, [hStdout]
+	sub 	rsp, 32
+	call 	WriteConsoleA
+	add 	rsp, 40
 
+	;WriteConsoleA(hStdout, crlf, 2, &writtenlen, nullptr)
+	push 	0
+	lea 	r9, [rbp-16]
+	mov 	r8d, 2
+	mov 	rdx, crlf
+	mov 	rcx, [hStdout]
+	sub 	rsp, 32
+	call 	WriteConsoleA
+	add 	rsp, 40
 
+	;WriteConsoleA(hStdout, "+--------------------------------------------------------------------+", dos_len, &writtenlen, nullptr)
+	push 	0
+	lea 	r9, [rbp-16]
+	mov 	r8d, ish_len
+	mov 	rdx, ish1
+	mov 	rcx, [hStdout]
+	sub 	rsp, 32
+	call 	WriteConsoleA
+	add 	rsp, 40
+	
+	;WriteConsoleA(hStdout, crlf, 2, &writtenlen, nullptr)
+	push 	0
+	lea 	r9, [rbp-16]
+	mov 	r8d, 2
+	mov 	rdx, crlf
+	mov 	rcx, [hStdout]
+	sub 	rsp, 32
+	call 	WriteConsoleA
+	add 	rsp, 40
 
-;IMAGE SECTION HEADER
+	;Load number of section to counter
+	mov 	r8, [rbp-104]
+	movzx 	rdi, word [r8]
+	
+	
+imgsec:
+
 ;Name
 
 	mov 	rcx, sectionname
@@ -1066,14 +1209,86 @@ PrintPE32:
 	mov 	rdx, rbx
 	mov 	r8d, 4
 	call	PrintHex
-;SizeOfRawData
 ;PointerToRawData
-;PointerToRelocations
-;PointerToLinenumbers
-;NumberOfRelocations
-;NumberOfLinenumbers
-;Characteristics
+	add 	rbx, 4
 
+	mov 	rcx, pointerrawdata
+	mov 	rdx, rbx
+	mov 	r8d, 4
+	call	PrintHex
+;PointerToRelocations
+	add 	rbx, 4
+
+	mov 	rcx, pointerreloc
+	mov 	rdx, rbx
+	mov 	r8d, 4
+	call	PrintHex
+;PointerToLinenumbers
+	add 	rbx, 4
+
+	mov 	rcx, pointerlinenum
+	mov 	rdx, rbx
+	mov 	r8d, 4
+	call	PrintHex
+;NumberOfRelocations
+	add 	rbx, 4
+
+	mov 	rcx, numofrelocation
+	mov 	rdx, rbx
+	mov 	r8d, 2
+	call	PrintHex
+;NumberOfLinenumbers
+	add 	rbx, 2
+
+	mov 	rcx, numoflinenumber
+	mov 	rdx, rbx
+	mov 	r8d, 2
+	call	PrintHex
+;Characteristics
+	add 	rbx, 2
+
+	mov 	rcx, icharacteristic
+	mov 	rdx, rbx
+	mov 	r8d, 4
+	call	PrintHex
+	add		rbx, 4
+	
+	;WriteConsoleA(hStdout, crlf, 2, &writtenlen, nullptr)
+	push 	0
+	lea 	r9, [rbp-16]
+	mov 	r8d, 2
+	mov 	rdx, crlf
+	mov 	rcx, [hStdout]
+	sub 	rsp, 32
+	call 	WriteConsoleA
+	add 	rsp, 40
+
+
+	sub		rdi, 1
+	cmp		rdi, 0
+	jne		imgsec
+	
+	
+	
+;Import Directory
+	mov 	rax, [rbp-96]
+	mov 	eax, dword [rax]
+	
+	test 	rax, rax
+	jz		L1
+	
+	
+	
+L1:
+;Export Directory
+	mov 	rax, [rbp-88]
+	mov 	eax, dword [rax]
+	
+	test 	rax, rax
+	jz		L2
+
+
+L2:
 	jmp		End
 PrintPE64:
 
