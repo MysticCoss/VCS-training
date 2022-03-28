@@ -16,10 +16,9 @@ segment .data
 	outofrangelen 	equ $-outofrange
 	nan 			db "Not a number", 0
 	nanlen 			equ $-nan
-	max 			db "Max : ", 0
-	maxlen 			equ $-max
-	min 			db "Min : ", 0
-	minlen 			equ $-min
+	
+	idata			db ".idata"
+	edata			db ".edata"
 	
 	;+--------------------------------------------------------------------+
 	;|                             DOS HEADER                             |
@@ -157,9 +156,13 @@ global Start
 Start:
     push    rbp 			
     mov     rbp, rsp		
-	sub		rsp, 128								;Allocate 128 bytes in stack
+	sub		rsp, 256								;Allocate 256 bytes in stack
 	;x64 calling convention : left->right RCX, RDX, R8, R9
 	;Local variable:
+	;offset -136 : DWORD exportrawaddress
+	;offset -128 : DWORD exportvirtualaddress
+	;offset -120 : DWORD importrawaddress
+	;offset -112 : DWORD importvirtualaddress
 	;offset -104 : WORD* numberofsection
 	;offset -96  : DWORD* importrva
 	;offset -88  : DWORD* exportrva
@@ -1182,7 +1185,42 @@ PrintPE32:
 imgsec:
 
 ;Name
-
+	mov		rcx, rbx
+	mov 	rdx, idata
+	mov 	r8, 6
+	call	strcmp
+	test	rax, rax
+	jz		L3
+	
+	;store import section's virtual address
+	lea		rcx, [rbx+12]
+	mov 	ecx, dword [rcx]
+	mov 	dword [rbp-112], ecx
+	;store import section's raw address
+	lea		rcx, [rbx+20]
+	mov 	ecx, dword [rcx]
+	mov 	dword [rbp-120], ecx
+	jmp		L4
+	
+	L3:
+	mov		rcx, rbx
+	mov 	rdx, edata
+	mov 	r8, 6
+	call	strcmp
+	test	rax, rax
+	jz		L4
+	
+	;store export section's virtual address
+	lea		rcx, [rbx+12]
+	mov 	ecx, dword [rcx]
+	mov 	[rbp-128], ecx
+	;store export section's raw address
+	lea		rcx, [rbx+20]
+	mov 	ecx, dword [rcx]
+	mov 	[rbp-136], ecx
+	
+	L4:
+	
 	mov 	rcx, sectionname
 	mov 	rdx, rbx
 	mov 	r8d, 8
@@ -1501,9 +1539,55 @@ PrintHex: ;rcx: Debug string, rdx: data to print, r8d: data size in byte
 	call	HeapFree
 	add 	rsp, 32
 	
+	add		rsp, 16
+	
 	pop 	r15
 	pop		r14
 	pop		r13
+	
+	leave
+	ret
+	
+strcmp: ;Rcx: LPVOID string1, rdx: LPVOID string2, int64 r8: requestedlength
+		;return 1 if strings are equal, otherwise 0
+	push	rbp
+	mov 	rbp, rsp
+	
+	push	rdi
+	push 	r15
+	push	r14
+	
+	xor 	rax, rax
+	
+	;if requestedlength is 0, we quit
+	cmp 	r8, 0
+	je		strcmpEnd
+	
+	
+	mov 	r9, rcx
+	mov 	rcx, r8
+	add		r8, rcx
+	add		r9, rcx
+	
+	strcmpLoop:
+	mov 	r15, r8
+	sub 	r15, rcx
+	movzx	r15, byte[r15]
+	
+	mov 	r14, r9
+	sub 	r14, rcx
+	movzx	r14, byte[r14]
+	
+	cmp		r14, r15
+	jne		strcmpEnd
+	
+	loop	strcmpLoop
+	mov 	rax, 1
+	
+	strcmpEnd:
+	pop		r14
+	pop		r15
+	pop		rdi
 	
 	leave
 	ret
