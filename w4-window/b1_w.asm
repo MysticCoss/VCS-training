@@ -128,6 +128,9 @@ segment .data
     numoflinenumber	db "Number of line numbers :                       ", 0
     icharacteristic	db "Characteristics :                              ", 0
 	
+	;Image import descriptor
+	origifirstthunk	db "Original first thunk : " , 0
+	
 segment .bss
 	hStdin resq 1
 	hStdout resq 1
@@ -244,8 +247,8 @@ Start:
 	mov  	[rbp-40], rax							;HANDLE hFile
 
 	
-;LPVOID buffer = HeapAlloc(hHeap, HEAP_ZERO_MEMORY, 1024)
-	mov     r8d, 1024       						;dwBytes: 1024
+;LPVOID buffer = HeapAlloc(hHeap, HEAP_ZERO_MEMORY, 50000)
+	mov     r8d, 50000       						;dwBytes: 50000
 	mov     edx, 8          						;dwFlags: HEAP_ZERO_MEMORY
 	mov     rcx, [hHeap] 							;hHeap
 	sub 	rsp, 32
@@ -254,10 +257,10 @@ Start:
 	
 	mov 	[rbp-48], rax 							;LPVOID buffer
 	
-;ReadFile(hFile, buffer, 1024, &byteread, nullptr)
+;ReadFile(hFile, buffer, 50000, &byteread, nullptr)
 	push 	0										;LPOVERLAPPED lpOverlapped: nullptr
 	lea 	r9, [rbp-56] 							;LPDWORD lpNumberOfBytesRead: &byteread
-	mov 	r8d, 1024								;nNumberOfBytesToRead
+	mov 	r8d, 50000								;nNumberOfBytesToRead
 	mov 	rdx, rax								;LPVOID lpBuffer: buffer
 	mov 	rcx, [rbp-40]							;HANDLE hFile: hFile
 	sub 	rsp, 32
@@ -1309,12 +1312,27 @@ imgsec:
 	
 	
 ;Import Directory
+	;load import rva
 	mov 	rax, [rbp-96]
 	mov 	eax, dword [rax]
 	
 	test 	rax, rax
 	jz		L1
 	
+	mov 	ecx, [rbp-112]				;import VA
+	sub		eax, ecx					;offset
+	
+	mov 	ecx, [rbp-120]				;import raw address
+	add		ecx, eax
+	
+	mov		eax, ecx					;
+	mov 	ecx, [rbp-48]				;buffer
+	add		ecx, eax
+	
+	mov 	rdx, rcx					;Data
+	mov 	rcx, origifirstthunk		;debug string
+	mov 	r8d, 4						;Length
+	call 	PrintHex
 	
 	
 L1:
@@ -1410,9 +1428,9 @@ EndInvalid:
 	jmp 	End
 
 EndError:
-	;r15 = HeapAlloc(hHeap, HEAP_ZERO_MEMORY, 1024)
+	;r15 = HeapAlloc(hHeap, HEAP_ZERO_MEMORY, 50000)
 	sub 	rsp, 32
-	mov     r8d, 400h       					;dwBytes: 1024
+	mov     r8d, 400h       					;dwBytes: 50000
 	mov     edx, 8          					;dwFlags: HEAP_ZERO_MEMORY
 	mov		rcx, [hHeap] 						;hHeap
 	call    HeapAlloc
@@ -1436,7 +1454,7 @@ EndError:
 	sub 	rsp, 32
 	mov		rcx, rax
 	mov 	rdx, r15
-	mov 	r8, 1024
+	mov 	r8, 50000
 	call 	Itoa								;int writtenlen[rax] Itoa(int64[rcx], void* buf[rdx], int bufferlen[r8])
 	add 	rsp, 32
 
@@ -1566,11 +1584,11 @@ strcmp: ;Rcx: LPVOID string1, rdx: LPVOID string2, int64 r8: requestedlength
 	
 	mov 	r9, rcx
 	mov 	rcx, r8
-	add		r8, rcx
+	add		rdx, rcx
 	add		r9, rcx
 	
 	strcmpLoop:
-	mov 	r15, r8
+	mov 	r15, rdx
 	sub 	r15, rcx
 	movzx	r15, byte[r15]
 	
