@@ -129,7 +129,11 @@ segment .data
     icharacteristic	db "Characteristics :                              ", 0
 	
 	;Image import descriptor
-	origifirstthunk	db "Original first thunk : " , 0
+	origifirstthunk	db "Original first thunk :                         ", 0
+	;timedatestamp (already defined)
+	forwarderchain	db "Forwarder chain :                              ", 0
+	name			db "Name :                                         ", 0
+	firstthunk		db "First thunk :                                  ", 0
 	
 segment .bss
 	hStdin resq 1
@@ -152,6 +156,7 @@ segment .text
 	extern ReadFile
 	extern CryptBinaryToStringA
 	extern lstrlenA
+	extern GetFileSize
 global Start
 
 
@@ -246,9 +251,15 @@ Start:
 
 	mov  	[rbp-40], rax							;HANDLE hFile
 
+	;size = GetFileSize(hFile, 0)
+	xor		rdx, rdx
+	mov 	rcx, [rbp-40]
+	call	GetFileSize
+
+	mov 	r15, rax
 	
 ;LPVOID buffer = HeapAlloc(hHeap, HEAP_ZERO_MEMORY, 50000)
-	mov     r8d, 50000       						;dwBytes: 50000
+	mov     r8d, r15d       						;dwBytes: size
 	mov     edx, 8          						;dwFlags: HEAP_ZERO_MEMORY
 	mov     rcx, [hHeap] 							;hHeap
 	sub 	rsp, 32
@@ -260,7 +271,7 @@ Start:
 ;ReadFile(hFile, buffer, 50000, &byteread, nullptr)
 	push 	0										;LPOVERLAPPED lpOverlapped: nullptr
 	lea 	r9, [rbp-56] 							;LPDWORD lpNumberOfBytesRead: &byteread
-	mov 	r8d, 50000								;nNumberOfBytesToRead
+	mov 	r8d, r15d								;nNumberOfBytesToRead: size
 	mov 	rdx, rax								;LPVOID lpBuffer: buffer
 	mov 	rcx, [rbp-40]							;HANDLE hFile: hFile
 	sub 	rsp, 32
@@ -1323,18 +1334,39 @@ imgsec:
 	sub		eax, ecx					;offset
 	
 	mov 	ecx, [rbp-120]				;import raw address
-	add		ecx, eax
+	add		ecx, eax					;import raw address + offset
 	
-	mov		eax, ecx					;
-	mov 	ecx, [rbp-48]				;buffer
-	add		ecx, eax
+	mov 	ebx, [rbp-48]				;buffer
+	add		ebx, ecx
 	
-	mov 	rdx, rcx					;Data
+	mov 	rdx, rbx					;Data
 	mov 	rcx, origifirstthunk		;debug string
 	mov 	r8d, 4						;Length
 	call 	PrintHex
 	
+	add		rbx, 4
+	mov 	rcx, timedatestamp			;debug string
+	mov 	rdx, rbx					;Data to print
+	mov 	r8d, 4						;Length
+	call 	PrintHex
 	
+	add		rbx, 4
+	mov 	rcx, forwarderchain			;debug string
+	mov 	rdx, rbx					;Data to print
+	mov 	r8d, 4						;Length
+	call 	PrintHex
+
+	add		rbx, 4
+	mov 	rcx, name					;debug string
+	mov 	rdx, rbx					;Data to print
+	mov 	r8d, 4						;Length
+	call 	PrintHex
+
+	add		rbx, 4
+	mov 	rcx, firstthunk				;debug string
+	mov 	rdx, rbx					;Data to print
+	mov 	r8d, 4						;Length
+	call 	PrintHex
 L1:
 ;Export Directory
 	mov 	rax, [rbp-88]
@@ -1609,3 +1641,7 @@ strcmp: ;Rcx: LPVOID string1, rdx: LPVOID string2, int64 r8: requestedlength
 	
 	leave
 	ret
+
+resolveRVAtoFileOffset: ;rcx: DWORD rva address
+						;rdx: array of virtual address(V)(DWORD) and pointer to raw data (P)(DWORD). Format: VPVPVPVP.... 
+						;r8d: DWORD number of section
