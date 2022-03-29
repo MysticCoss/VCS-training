@@ -157,6 +157,7 @@ segment .text
 	extern CryptBinaryToStringA
 	extern lstrlenA
 	extern GetFileSize
+	extern SetFilePointer
 global Start
 
 
@@ -167,6 +168,8 @@ Start:
 	sub		rsp, 256								;Allocate 256 bytes in stack
 	;x64 calling convention : left->right RCX, RDX, R8, R9
 	;Local variable:
+	;offset -152 : DWORD bufferpointer
+	;offset -144 : LPVOID sectionarray
 	;offset -136 : DWORD exportrawaddress
 	;offset -128 : DWORD exportvirtualaddress
 	;offset -120 : DWORD importrawaddress
@@ -268,10 +271,11 @@ Start:
 	
 	mov 	[rbp-48], rax 							;LPVOID buffer
 	
+	mov 	qword [rbp-152], 0							;bufferpointer = 0
 ;ReadFile(hFile, buffer, 50000, &byteread, nullptr)
 	push 	0										;LPOVERLAPPED lpOverlapped: nullptr
 	lea 	r9, [rbp-56] 							;LPDWORD lpNumberOfBytesRead: &byteread
-	mov 	r8d, r15d								;nNumberOfBytesToRead: size
+	mov 	r8d, 50000								;nNumberOfBytesToRead: size
 	mov 	rdx, rax								;LPVOID lpBuffer: buffer
 	mov 	rcx, [rbp-40]							;HANDLE hFile: hFile
 	sub 	rsp, 32
@@ -1334,7 +1338,26 @@ imgsec:
 	sub		eax, ecx					;offset
 	
 	mov 	ecx, [rbp-120]				;import raw address
-	add		ecx, eax					;import raw address + offset
+	add		ecx, eax					;import raw address + offset = fileoffset
+	
+	;SetFilePointer(hFile, fileoffset, null, FILE_BEGIN)
+	xor		r9, r9						;DWORD  dwMoveMethod: 0 (FILE_BEGIN)
+	xor 	r8, r8						;PLONG  lpDistanceToMoveHigh: null
+	mov		rdx, rcx					;LONG   lDistanceToMove: fileoffset
+	mov 	rcx, [rbp-40]				;HANDLE hFile: hFile
+	sub		rsp, 32
+	call	SetFilePointer
+	add		rsp, 32
+	
+	;ReadFile(hFile, buffer, 1024, &byteread, nullptr)
+	push 	0										;LPOVERLAPPED lpOverlapped: nullptr
+	lea 	r9, [rbp-56] 							;LPDWORD lpNumberOfBytesRead: &byteread
+	mov 	r8d, 1024								;nNumberOfBytesToRead: 1024
+	mov 	rdx, [rbp-48]							;LPVOID lpBuffer: buffer
+	mov 	rcx, [rbp-40]							;HANDLE hFile: hFile
+	sub 	rsp, 32
+	call 	ReadFile
+	add 	rsp, 40
 	
 	mov 	ebx, [rbp-48]				;buffer
 	add		ebx, ecx
