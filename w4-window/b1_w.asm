@@ -163,9 +163,9 @@ global Start
 
 
 Start:
-        push    rbp 			
-        mov     rbp, rsp		
-	sub	rsp, 256								;Allocate 256 bytes in stack
+    push    rbp 			
+    mov     rbp, rsp		
+	sub		rsp, 256								;Allocate 256 bytes in stack
 	;x64 calling convention : left->right RCX, RDX, R8, R9
 	;Local variable:
 	;offset -152 : DWORD bufferpointer
@@ -175,8 +175,8 @@ Start:
 	;offset -120 : DWORD importrawaddress
 	;offset -112 : DWORD importvirtualaddress
 	;offset -104 : WORD* numberofsection
-	;offset -96  : DWORD* importrva
-	;offset -88  : DWORD* exportrva
+	;offset -96  : DWORD importrva
+	;offset -88  : DWORD exportrva
 	;offset -80  : WORD sizeofoptionalheader
 	;offset -72  : LPVOID optionalheaderbase
 	;offset -64  : LPVOID out
@@ -932,7 +932,7 @@ PrintPE32:
 ;FileAlignment
 	add 	rbx, 4
 
-	mov 	rcx, filealign						;Debug string
+	mov 	rcx, filealign							;Debug string
 	mov 	rdx, rbx								;buffer
 	mov		r8d, 4									;buffer length
 	call	PrintHex
@@ -957,7 +957,7 @@ PrintPE32:
 ;majorimgver
 	add 	rbx, 2
 
-	mov 	rcx, majorimgver							;Debug string
+	mov 	rcx, majorimgver						;Debug string
 	mov 	rdx, rbx								;buffer
 	mov		r8d, 2									;buffer length
 	call	PrintHex
@@ -966,7 +966,7 @@ PrintPE32:
 ;minorimgver
 	add 	rbx, 2
 
-	mov 	rcx, minorimgver							;Debug string
+	mov 	rcx, minorimgver						;Debug string
 	mov 	rdx, rbx								;buffer
 	mov		r8d, 2									;buffer length
 	call	PrintHex
@@ -975,7 +975,7 @@ PrintPE32:
 ;majorsubsysver
 	add 	rbx, 2
 
-	mov 	rcx, majorsubsysver							;Debug string
+	mov 	rcx, majorsubsysver						;Debug string
 	mov 	rdx, rbx								;buffer
 	mov		r8d, 2									;buffer length
 	call	PrintHex
@@ -1092,7 +1092,8 @@ PrintPE32:
 ;ExportDirectory RVA Address
 	add		rbx, 4
 	
-	mov 	qword [rbp-88], rbx
+	mov 	eax, dword [rbx]
+	mov 	[rbp-88], eax
 	
 	mov 	rcx, exportrva							;Debug string
 	mov 	rdx, rbx								;buffer
@@ -1110,7 +1111,8 @@ PrintPE32:
 ;ImportDirectory RVA Address
 	add		rbx, 4
 	
-	mov 	qword [rbp-96], rbx
+	mov 	eax, dword [rbx]
+	mov 	[rbp-96], eax
 	
 	mov 	rcx, importrva							;Debug string
 	mov 	rdx, rbx								;buffer
@@ -1345,29 +1347,23 @@ imgsec:
 	
 ;Import Directory
 	;load import rva
-	mov 	rax, [rbp-96]				;importrva*
-	mov 	eax, dword [rax]			;importrva
+	mov 	eax, dword [rbp-96]						;importrva
 	
-	test 	rax, rax
-	jz		L1
+	cmp 	rax, 0
+	je		exportdir
 	
-	mov 	rcx, rax					;RVA: importrva
-	mov 	rdx, [rbp-144]				;sectionarray (information about section)
+	mov 	rcx, rax								;RVA: importrva
+	mov 	rdx, [rbp-144]							;sectionarray (information about section)
 	mov 	r8, [rbp-104]
 	movzx 	r8d, word [r8]
 	call	resolveRVAtoFileOffset
 	mov 	ecx, eax
-	; mov 	ecx, [rbp-112]				;import VA
-	; sub		eax, ecx					;offset
-	
-	; mov 	ecx, [rbp-120]				;import raw address
-	; add		ecx, eax					;import raw address + offset = fileoffset
 	
 	;SetFilePointer(hFile, fileoffset, null, FILE_BEGIN)
-	xor		r9, r9						;DWORD  dwMoveMethod: 0 (FILE_BEGIN)
-	xor 	r8, r8						;PLONG  lpDistanceToMoveHigh: null
-	mov		rdx, rcx					;LONG   lDistanceToMove: fileoffset
-	mov 	rcx, [rbp-40]				;HANDLE hFile: hFile
+	xor		r9, r9									;DWORD  dwMoveMethod: 0 (FILE_BEGIN)
+	xor 	r8, r8									;PLONG  lpDistanceToMoveHigh: null
+	mov		rdx, rcx								;LONG   lDistanceToMove: fileoffset
+	mov 	rcx, [rbp-40]							;HANDLE hFile: hFile
 	sub		rsp, 32
 	call	SetFilePointer
 	add		rsp, 32
@@ -1386,76 +1382,62 @@ imgsec:
 	cmp 	rax, 0
 	je  	EndError
 	
-	mov 	ebx, [rbp-48]				;buffer
-	
-	importdirectoryprint:
-	mov 	rdx, rbx					;Data
-	mov 	rcx, origifirstthunk		;debug string
-	mov 	r8d, 4						;Length
-	call 	PrintHex
-	
-	add		rbx, 4
-	mov 	rcx, timedatestamp			;debug string
-	mov 	rdx, rbx					;Data to print
-	mov 	r8d, 4						;Length
-	call 	PrintHex
-	
-	add		rbx, 4
-	mov 	rcx, forwarderchain			;debug string
-	mov 	rdx, rbx					;Data to print
-	mov 	r8d, 4						;Length
-	call 	PrintHex
+	mov 	ebx, [rbp-48]							;buffer
 
-	add		rbx, 4
-	mov 	rcx, name					;debug string
-	mov 	rdx, rbx					;Data to print
-	mov 	r8d, 4						;Length
-	call 	PrintHex
+	importdirectoryprint:			
+	mov 	rdx, rbx								;Data
+	mov 	rcx, origifirstthunk					;debug string
+	mov 	r8d, 4									;Length
+	call 	PrintHex			
 
-	add		rbx, 4
-	mov 	rcx, firstthunk				;debug string
-	mov 	rdx, rbx					;Data to print
-	mov 	r8d, 4						;Length
-	call 	PrintHex
-	
-	add		rbx, 4
-	mov		eax, dword [rbx]
-	cmp		rax, 0
-	jne		importdirectoryprint
-	
-L1:
-;Export Directory
-	mov 	rax, [rbp-88]
-	mov 	eax, dword [rax]
-	
-	test 	rax, rax
-	jz		L2
-	
-	;load export rva
-	mov 	rax, [rbp-88]				;exportrva*
-	mov 	eax, dword [rax]			;exportrva
-	
-	test 	rax, rax
-	jz		L1
-	
-	mov 	rcx, rax					;RVA: importrva
-	mov 	rdx, [rbp-144]				;sectionarray (information about section)
-	mov 	r8, [rbp-104]				;numberofsection
+	add		rbx, 4			
+	mov 	rcx, timedatestamp						;debug string
+	mov 	rdx, rbx								;Data to print
+	mov 	r8d, 4									;Length
+	call 	PrintHex			
+
+	add		rbx, 4			
+	mov 	rcx, forwarderchain						;debug string
+	mov 	rdx, rbx								;Data to print
+	mov 	r8d, 4									;Length
+	call 	PrintHex			
+			
+	add		rbx, 4			
+	mov 	rcx, name								;debug string
+	mov 	rdx, rbx								;Data to print
+	mov 	r8d, 4									;Length
+	call 	PrintHex			
+			
+	add		rbx, 4			
+	mov 	rcx, firstthunk							;debug string
+	mov 	rdx, rbx								;Data to print
+	mov 	r8d, 4									;Length
+	call 	PrintHex			
+				
+	add		rbx, 4			
+	mov		eax, dword [rbx]			
+	cmp		rax, 0			
+	jne		importdirectoryprint			
+				
+exportdir:			
+;Export Directory			
+	mov 	eax, dword [rbp-88]						;exportrva
+				
+	cmp 	rax, 0			
+	je		L2			
+				
+	mov 	rcx, rax								;RVA: exportrva
+	mov 	rdx, [rbp-144]							;sectionarray (information about section)
+	mov 	r8, [rbp-104]							;numberofsection
 	movzx 	r8d, word [r8]
 	call	resolveRVAtoFileOffset
 	mov 	ecx, eax
-
-	; mov 	ecx, [rbp-112]				;import VA
-	; sub		eax, ecx					;offset
-	
-	; mov 	ecx, [rbp-120]				;import raw address
-	; add		ecx, eax					;import raw address + offset = fileoffset
 	
 	;SetFilePointer(hFile, fileoffset, null, FILE_BEGIN)
-	xor		r9, r9						;DWORD  dwMoveMethod: 0 (FILE_BEGIN)
-	xor 	r8, r8						;PLONG  lpDistanceToMoveHigh: null
-	mov		rdx, rcx					;LONG   lDistanceToMove: fileoffset
-	mov 	rcx, [rbp-40]				;HANDLE hFile: hFile
+	xor		r9, r9									;DWORD  dwMoveMethod: 0 (FILE_BEGIN)
+	xor 	r8, r8									;PLONG  lpDistanceToMoveHigh: null
+	mov		rdx, rcx								;LONG   lDistanceToMove: fileoffset
+	mov 	rcx, [rbp-40]							;HANDLE hFile: hFile
 	sub		rsp, 32
 	call	SetFilePointer
 	add		rsp, 32
@@ -1474,42 +1456,42 @@ L1:
 	cmp 	rax, 0
 	je  	EndError	
 	
-	mov 	ebx, [rbp-48]				;buffer
+	mov 	ebx, [rbp-48]							;buffer
 	
 	exportdirectoryprint:
-	mov 	rdx, rbx					;Data
-	mov 	rcx, origifirstthunk		;debug string
-	mov 	r8d, 4						;Length
+	mov 	rdx, rbx								;Data
+	mov 	rcx, origifirstthunk					;debug string
+	mov 	r8d, 4									;Length
 	call 	PrintHex
 	
 	add		rbx, 4
-	mov 	rcx, timedatestamp			;debug string
-	mov 	rdx, rbx					;Data to print
-	mov 	r8d, 4						;Length
+	mov 	rcx, timedatestamp						;debug string
+	mov 	rdx, rbx								;Data to print
+	mov 	r8d, 4									;Length
 	call 	PrintHex
 	
 	add		rbx, 4
-	mov 	rcx, forwarderchain			;debug string
-	mov 	rdx, rbx					;Data to print
-	mov 	r8d, 4						;Length
+	mov 	rcx, forwarderchain						;debug string
+	mov 	rdx, rbx								;Data to print
+	mov 	r8d, 4									;Length
 	call 	PrintHex
 
 	add		rbx, 4
-	mov 	rcx, name					;debug string
-	mov 	rdx, rbx					;Data to print
-	mov 	r8d, 4						;Length
+	mov 	rcx, name								;debug string
+	mov 	rdx, rbx								;Data to print
+	mov 	r8d, 4									;Length
 	call 	PrintHex
 
 	add		rbx, 4
-	mov 	rcx, firstthunk				;debug string
-	mov 	rdx, rbx					;Data to print
-	mov 	r8d, 4						;Length
+	mov 	rcx, firstthunk							;debug string
+	mov 	rdx, rbx								;Data to print
+	mov 	r8d, 4									;Length
 	call 	PrintHex
 	
 	add		rbx, 4
 	mov		eax, dword [rbx]
-	test	rax, rax
-	jnz		exportdirectoryprint
+	cmp		rax, 0
+	jne		exportdirectoryprint
 
 L2:
 	jmp		End
@@ -1536,33 +1518,33 @@ Itoa: ;int[rax] Itoa(int64[rcx], void* buf[rdx], int bufferlen[r8d])
 	;Initialization
 	ItoaL0:
 	
-	xor  	r15, r15							;r15: char count = 0
-	mov 	r14, rdx							;r14: buffer
-	mov 	rax, rcx							;rax: dividend
+	xor  	r15, r15								;r15: char count = 0
+	mov 	r14, rdx								;r14: buffer
+	mov 	rax, rcx								;rax: dividend
 	ItoaL1:
 	;Comparison
-	cmp  	rax, 0								;check if fully converted
+	cmp  	rax, 0									;check if fully converted
 	je  	ItoaL2
-	cmp 	r15, r8								;check if ran out of buffer
+	cmp 	r15, r8									;check if ran out of buffer
 	jg  	ItoaL2
 	;Loop
-	xor 	rdx, rdx							;[rdx:rax] = rax (zero rdx)
+	xor 	rdx, rdx								;[rdx:rax] = rax (zero rdx)
 	mov 	rdi, 10											
-												;rax / 10
-	div 	rdi 								;rax: Quotient, rdx: Remainder
+													;rax / 10
+	div 	rdi 									;rax: Quotient, rdx: Remainder
 	
-	add 	rdx, 48								;convert to ascii char
-	push	rdx									;push remainter on stack
-	inc 	r15									;counter++
+	add 	rdx, 48									;convert to ascii char
+	push	rdx										;push remainter on stack
+	inc 	r15										;counter++
 	jmp 	ItoaL1
 	ItoaL2:	;Processing characters to data buffer
 	;for (r13 = 0 , (loop counter)r13 < r15(char counter), r13++)
 	;Initialization
-	xor 	r13, r13 							;loop counter = 0
+	xor 	r13, r13 								;loop counter = 0
 	ItoaL3:	
 	;Comparison
-	cmp 	r13, r15							;if r13 < r15 -> enter loop
-	jl  	ItoaL4								;else quit
+	cmp 	r13, r15								;if r13 < r15 -> enter loop
+	jl  	ItoaL4									;else quit
 	jmp 	ItoaEnd
 	ItoaL4:
 	pop 	rax
@@ -1571,9 +1553,9 @@ Itoa: ;int[rax] Itoa(int64[rcx], void* buf[rdx], int bufferlen[r8d])
 	inc 	r14
 	jmp 	ItoaL3
 	ItoaEnd:
-	mov 	eax, r15d							;return char count
+	mov 	eax, r15d								;return char count
 	
-	pop 	r13									;Callee save register
+	pop 	r13										;Callee save register
 	pop 	r14
 	pop 	r15
 	pop		rdi
@@ -1583,36 +1565,36 @@ Itoa: ;int[rax] Itoa(int64[rcx], void* buf[rdx], int bufferlen[r8d])
 
 EndInvalid:
 	;Print invalid message
-	sub 	rsp, 32								;Shadow store
-	mov		rcx, [hStdout]						;hStdout
-	mov 	rdx, invalid						;"Invalid input"
-	mov 	r8d, invalidlen						;14
-	mov		r9, [rbp-16]						;&writtenlen
+	sub 	rsp, 32									;Shadow store
+	mov		rcx, [hStdout]							;hStdout
+	mov 	rdx, invalid							;"Invalid input"
+	mov 	r8d, invalidlen							;14
+	mov		r9, [rbp-16]							;&writtenlen
 	push 	0
-	call 	WriteConsoleA						;WriteConsoleA(hStdout, "Invalid input", 14, &writtenlen, 0);
-	add		rsp, 40								;Shadow store + clean up paramenter
+	call 	WriteConsoleA							;WriteConsoleA(hStdout, "Invalid input", 14, &writtenlen, 0);
+	add		rsp, 40									;Shadow store + clean up paramenter
 
 	jmp 	End
 
 EndError:
 	;r15 = HeapAlloc(hHeap, HEAP_ZERO_MEMORY, 50000)
 	sub 	rsp, 32
-	mov     r8d, 400h       					;dwBytes: 50000
-	mov     edx, 8          					;dwFlags: HEAP_ZERO_MEMORY
-	mov		rcx, [hHeap] 						;hHeap
+	mov     r8d, 400h       						;dwBytes: 50000
+	mov     edx, 8          						;dwFlags: HEAP_ZERO_MEMORY
+	mov		rcx, [hHeap] 							;hHeap
 	call    HeapAlloc
 	add 	rsp, 32
 	mov 	r15, rax
 
 	;Print error message
-	sub 	rsp, 32								;Shadow store
-	mov		rcx, [hStdout]						;hStdout
-	mov		rdx, errormsg						;"Some error occured "
-	mov 	r8d, errormsglen					;19
-	mov		r9, [rbp-16]						;&writtenlen
+	sub 	rsp, 32									;Shadow store
+	mov		rcx, [hStdout]							;hStdout
+	mov		rdx, errormsg							;"Some error occured "
+	mov 	r8d, errormsglen						;19
+	mov		r9, [rbp-16]							;&writtenlen
 	push 	0
-	call 	WriteConsoleA						;WriteConsoleA(hStdout, "Some error occured ", 19, &writtenlen, 0);
-	add		rsp, 40								;Shadow store + clean up paramenter
+	call 	WriteConsoleA							;WriteConsoleA(hStdout, "Some error occured ", 19, &writtenlen, 0);
+	add		rsp, 40									;Shadow store + clean up paramenter
 
 	;GetLastError()
 	call 	GetLastError
@@ -1622,18 +1604,18 @@ EndError:
 	mov		rcx, rax
 	mov 	rdx, r15
 	mov 	r8, 50000
-	call 	Itoa								;int writtenlen[rax] Itoa(int64[rcx], void* buf[rdx], int bufferlen[r8])
+	call 	Itoa									;int writtenlen[rax] Itoa(int64[rcx], void* buf[rdx], int bufferlen[r8])
 	add 	rsp, 32
 
 	;Print error code string
-	sub 	rsp, 32								;Shadow store
-	mov		rcx, [hStdout]						;hStdout
-	mov 	rdx, r15							;Buffer store error code
-	mov 	r8, rax								;Buffer length
-	mov		r9, [rbp-16]						;&writtenlen
+	sub 	rsp, 32									;Shadow store
+	mov		rcx, [hStdout]							;hStdout
+	mov 	rdx, r15								;Buffer store error code
+	mov 	r8, rax									;Buffer length
+	mov		r9, [rbp-16]							;&writtenlen
 	push 	0
-	call 	WriteConsoleA						;WriteConsoleA(hStdout, errorcode, errorcodelen, &writtenlen, 0);
-	add		rsp, 40								;Shadow store + clean up paramenter
+	call 	WriteConsoleA							;WriteConsoleA(hStdout, errorcode, errorcodelen, &writtenlen, 0);
+	add		rsp, 40									;Shadow store + clean up paramenter
 	
 	jmp 	End
 
@@ -1802,10 +1784,10 @@ resolveRVAtoFileOffset: ;ecx: DWORD rva address
 	
 	;rdx + (rdi)*8
 	mov 	rbx, rdi
-	shl		rbx, 3				;(rdi+1)*8
-	add		rbx, rdx			;rdx + (rdi+1) * 8
+	shl		rbx, 3									;(rdi)*8
+	add		rbx, rdx								;rdx + (rdi) * 8
 	
-	mov  	r9d, dword [rbx]	;DWORD virtual address
+	mov  	r9d, dword [rbx]						;DWORD virtual address
 	cmp		ecx, r9d
 	jb		tmp1
 	mov 	r15, 1
@@ -1818,10 +1800,10 @@ resolveRVAtoFileOffset: ;ecx: DWORD rva address
 	;rdx + (rdi+1)*8
 	mov 	rbx, rdi
 	inc 	rbx
-	shl		rbx, 3				;(rdi+1)*8
-	add		rbx, rdx			;rdx + (rdi+1) * 8
+	shl		rbx, 3									;(rdi+1)*8
+	add		rbx, rdx								;rdx + (rdi+1) * 8
 	
-	mov  	r9d, dword [rbx]	;DWORD virtual address
+	mov  	r9d, dword [rbx]						;DWORD virtual address
 	
 	cmp		ecx, r9d
 	ja		tmp3
@@ -1843,14 +1825,14 @@ resolveRVAtoFileOffset: ;ecx: DWORD rva address
 	resolveL2:
 	;rdx + (rdi)*8
 	mov 	rbx, rdi
-	shl		rbx, 3				;rdi*8
-	add		rbx, rdx			;rdx + rdi * 8
+	shl		rbx, 3									;rdi*8
+	add		rbx, rdx								;rdx + rdi * 8
 	
-	mov  	r15d, dword [rbx]	;DWORD virtual address
-	sub		ecx, r15d			;RVA - virtualaddress
+	mov  	r15d, dword [rbx]						;DWORD virtual address
+	sub		ecx, r15d								;RVA - virtualaddress
 	add		rbx, 4
-	mov 	ebx, dword [rbx]	;DWORD pointer to raw data
-	add		rbx, rcx			;RVA - virtualaddress + rawoffset
+	mov 	ebx, dword [rbx]						;DWORD pointer to raw data
+	add		rbx, rcx								;RVA - virtualaddress + rawoffset
 	mov 	rax, rbx
 	
 	resolveEnd:
