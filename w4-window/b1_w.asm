@@ -158,14 +158,14 @@ segment .text
 	extern lstrlenA
 	extern GetFileSize
 	extern SetFilePointer
-global Start
+global WinMain
 
 
 
-Start:
-    push    rbp 			
-    mov     rbp, rsp		
-	sub		rsp, 256								;Allocate 256 bytes in stack
+WinMain:
+        push    rbp 			
+        mov     rbp, rsp		
+	sub	rsp, 256								;Allocate 256 bytes in stack
 	;x64 calling convention : left->right RCX, RDX, R8, R9
 	;Local variable:
 	;offset -152 : DWORD bufferpointer
@@ -1345,17 +1345,23 @@ imgsec:
 	
 ;Import Directory
 	;load import rva
-	mov 	rax, [rbp-96]
-	mov 	eax, dword [rax]
+	mov 	rax, [rbp-96]				;importrva*
+	mov 	eax, dword [rax]			;importrva
 	
 	test 	rax, rax
 	jz		L1
 	
-	mov 	ecx, [rbp-112]				;import VA
-	sub		eax, ecx					;offset
+	mov 	rcx, rax					;RVA: importrva
+	mov 	rdx, [rbp-144]				;sectionarray (information about section)
+	mov 	r8, [rbp-104]
+	movzx 	r8d, word [r8]
+	call	resolveRVAtoFileOffset
 	
-	mov 	ecx, [rbp-120]				;import raw address
-	add		ecx, eax					;import raw address + offset = fileoffset
+	; mov 	ecx, [rbp-112]				;import VA
+	; sub		eax, ecx					;offset
+	
+	; mov 	ecx, [rbp-120]				;import raw address
+	; add		ecx, eax					;import raw address + offset = fileoffset
 	
 	;SetFilePointer(hFile, fileoffset, null, FILE_BEGIN)
 	xor		r9, r9						;DWORD  dwMoveMethod: 0 (FILE_BEGIN)
@@ -1682,13 +1688,45 @@ strcmp: ;Rcx: LPVOID string1, rdx: LPVOID string2, int64 r8: requestedlength
 	leave
 	ret
 
-resolveRVAtoFileOffset: ;rcx: DWORD rva address
+resolveRVAtoFileOffset: ;ecx: DWORD rva address
 						;rdx: LPVOID array of virtual address(V)(DWORD) and pointer to raw data (P)(DWORD). Format: VPVPVPVP.... 
 						;r8d: DWORD number of section
-	resolveL1:
-	test 	r8, r8
-	jz		resolveEnd
+	;function return file offset on success, return null otherwise
+	push 	rbp
+	mov 	rbp, rsp
 	
-	loop	resolveL1
+	push 	rdi	
+	push	rbx
+	xor 	rax, rax
+	xor 	rdi, rdi
+	resolveL1:
+	cmp 	r8, rdi
+	je		resolveEnd
+	
+	;rdx + rdi*8
+	mov 	rbx, rdi
+	shl		rbx, 3				;rdi*8
+	add		rbx, rdx			;rdx + rdi * 8
+	
+	mov  	r9d, dword [rbx]	;DWORD virtual address
+	
+	cmp		ecx, r9d
+	jae		resolveL2
+	
+	inc		rdi
+	jmp		resolveL1
+	
+	;we have found which section RVA belong to
+	resolveL2:
+	sub		ecx, ebx			;RVA - virtualaddress
+	add		rbx, 4
+	mov 	ebx, dword [rbx]	;DWORD pointer to raw data
+	add		rbx, rcx			;RVA - virtualaddress + rawoffset
+	mov 	rax, rbx
 	
 	resolveEnd:
+	
+	pop		rbx
+	pop		rdi
+	leave
+	ret
