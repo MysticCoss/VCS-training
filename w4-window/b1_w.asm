@@ -1199,7 +1199,14 @@ PrintPE32:
 	mov 	r8, [rbp-104]
 	movzx 	rdi, word [r8]
 	
-	
+	;Allocate storage sectionarray
+	;sectionarray = HeapAlloc(hHeap, HEAP_ZERO_MEMORY, numberofsection)
+	mov		r8, rdi									;dwBytes: size
+	mov		rdx, 8									;dwFlags: HEAP_ZERO_MEMORY
+	mov 	rcx, [hHeap]                    		;hHeap
+	call	HeapAlloc
+	mov 	[rbp-144], rax							;sectionarray
+	mov 	r15, rax								
 imgsec:
 
 ;Name
@@ -1253,7 +1260,11 @@ imgsec:
 	call	PrintHex
 ;VirtualAddress
 	add 	rbx, 4
-
+	
+	;store virtual address to section array
+	mov 	eax, dword [rbx]
+	mov 	dword [r15], eax
+	
 	mov 	rcx, virtualaddress
 	mov 	rdx, rbx
 	mov 	r8d, 4
@@ -1267,7 +1278,12 @@ imgsec:
 	call	PrintHex
 ;PointerToRawData
 	add 	rbx, 4
-
+	add		r15, 4
+	
+	;store pointer to raw data to section array
+	mov 	eax, dword [rbx]
+	mov 	dword [r15], eax
+	
 	mov 	rcx, pointerrawdata
 	mov 	rdx, rbx
 	mov 	r8d, 4
@@ -1319,7 +1335,8 @@ imgsec:
 	call 	WriteConsoleA
 	add 	rsp, 40
 
-
+	
+	add		r15, 4
 	sub		rdi, 1
 	cmp		rdi, 0
 	jne		imgsec
@@ -1666,5 +1683,12 @@ strcmp: ;Rcx: LPVOID string1, rdx: LPVOID string2, int64 r8: requestedlength
 	ret
 
 resolveRVAtoFileOffset: ;rcx: DWORD rva address
-						;rdx: array of virtual address(V)(DWORD) and pointer to raw data (P)(DWORD). Format: VPVPVPVP.... 
+						;rdx: LPVOID array of virtual address(V)(DWORD) and pointer to raw data (P)(DWORD). Format: VPVPVPVP.... 
 						;r8d: DWORD number of section
+	resolveL1:
+	test 	r8, r8
+	jz		resolveEnd
+	
+	loop	resolveL1
+	
+	resolveEnd:
