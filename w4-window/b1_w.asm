@@ -158,11 +158,11 @@ segment .text
 	extern lstrlenA
 	extern GetFileSize
 	extern SetFilePointer
-global WinMain
+global Start
 
 
 
-WinMain:
+Start:
         push    rbp 			
         mov     rbp, rsp		
 	sub	rsp, 256								;Allocate 256 bytes in stack
@@ -1356,7 +1356,7 @@ imgsec:
 	mov 	r8, [rbp-104]
 	movzx 	r8d, word [r8]
 	call	resolveRVAtoFileOffset
-	
+	mov 	ecx, eax
 	; mov 	ecx, [rbp-112]				;import VA
 	; sub		eax, ecx					;offset
 	
@@ -1382,9 +1382,13 @@ imgsec:
 	call 	ReadFile
 	add 	rsp, 40
 	
-	mov 	ebx, [rbp-48]				;buffer
-	add		ebx, ecx
+	;if (ReadFile == 0) then exit error
+	cmp 	rax, 0
+	je  	EndError
 	
+	mov 	ebx, [rbp-48]				;buffer
+	
+	importdirectoryprint:
 	mov 	rdx, rbx					;Data
 	mov 	rcx, origifirstthunk		;debug string
 	mov 	r8d, 4						;Length
@@ -1413,6 +1417,12 @@ imgsec:
 	mov 	rdx, rbx					;Data to print
 	mov 	r8d, 4						;Length
 	call 	PrintHex
+	
+	add		rbx, 4
+	mov		eax, dword [rbx]
+	cmp		rax, 0
+	jne		importdirectoryprint
+	
 L1:
 ;Export Directory
 	mov 	rax, [rbp-88]
@@ -1420,7 +1430,86 @@ L1:
 	
 	test 	rax, rax
 	jz		L2
+	
+	;load export rva
+	mov 	rax, [rbp-88]				;exportrva*
+	mov 	eax, dword [rax]			;exportrva
+	
+	test 	rax, rax
+	jz		L1
+	
+	mov 	rcx, rax					;RVA: importrva
+	mov 	rdx, [rbp-144]				;sectionarray (information about section)
+	mov 	r8, [rbp-104]				;numberofsection
+	movzx 	r8d, word [r8]
+	call	resolveRVAtoFileOffset
+	mov 	ecx, eax
 
+	; mov 	ecx, [rbp-112]				;import VA
+	; sub		eax, ecx					;offset
+	
+	; mov 	ecx, [rbp-120]				;import raw address
+	; add		ecx, eax					;import raw address + offset = fileoffset
+	
+	;SetFilePointer(hFile, fileoffset, null, FILE_BEGIN)
+	xor		r9, r9						;DWORD  dwMoveMethod: 0 (FILE_BEGIN)
+	xor 	r8, r8						;PLONG  lpDistanceToMoveHigh: null
+	mov		rdx, rcx					;LONG   lDistanceToMove: fileoffset
+	mov 	rcx, [rbp-40]				;HANDLE hFile: hFile
+	sub		rsp, 32
+	call	SetFilePointer
+	add		rsp, 32
+	
+	;ReadFile(hFile, buffer, 1024, &byteread, nullptr)
+	push 	0										;LPOVERLAPPED lpOverlapped: nullptr
+	lea 	r9, [rbp-56] 							;LPDWORD lpNumberOfBytesRead: &byteread
+	mov 	r8d, 1024								;nNumberOfBytesToRead: 1024
+	mov 	rdx, [rbp-48]							;LPVOID lpBuffer: buffer
+	mov 	rcx, [rbp-40]							;HANDLE hFile: hFile
+	sub 	rsp, 32
+	call 	ReadFile
+	add 	rsp, 40
+	
+	;if (ReadFile == 0) then exit error
+	cmp 	rax, 0
+	je  	EndError	
+	
+	mov 	ebx, [rbp-48]				;buffer
+	
+	exportdirectoryprint:
+	mov 	rdx, rbx					;Data
+	mov 	rcx, origifirstthunk		;debug string
+	mov 	r8d, 4						;Length
+	call 	PrintHex
+	
+	add		rbx, 4
+	mov 	rcx, timedatestamp			;debug string
+	mov 	rdx, rbx					;Data to print
+	mov 	r8d, 4						;Length
+	call 	PrintHex
+	
+	add		rbx, 4
+	mov 	rcx, forwarderchain			;debug string
+	mov 	rdx, rbx					;Data to print
+	mov 	r8d, 4						;Length
+	call 	PrintHex
+
+	add		rbx, 4
+	mov 	rcx, name					;debug string
+	mov 	rdx, rbx					;Data to print
+	mov 	r8d, 4						;Length
+	call 	PrintHex
+
+	add		rbx, 4
+	mov 	rcx, firstthunk				;debug string
+	mov 	rdx, rbx					;Data to print
+	mov 	r8d, 4						;Length
+	call 	PrintHex
+	
+	add		rbx, 4
+	mov		eax, dword [rbx]
+	test	rax, rax
+	jnz		exportdirectoryprint
 
 L2:
 	jmp		End
@@ -1558,12 +1647,12 @@ PrintHex: ;rcx: Debug string, rdx: data to print, r8d: data size in byte
 
 	push	rbp
 	mov 	rbp, rsp
-
-	sub 	rsp, 16
 	
 	push 	r13
 	push 	r14
 	push	r15
+	
+	sub 	rsp, 16
 	
 	mov 	r14, rdx
 	mov 	r15, r8
@@ -1697,36 +1786,78 @@ resolveRVAtoFileOffset: ;ecx: DWORD rva address
 	
 	push 	rdi	
 	push	rbx
+	push 	r15
+	push 	r14
 	xor 	rax, rax
 	xor 	rdi, rdi
+	xor		r15, r15
+	xor 	r14, r14
 	resolveL1:
 	cmp 	r8, rdi
 	je		resolveEnd
 	
-	;rdx + rdi*8
+	lea 	rbx, [r8-1]
+	cmp 	rdi, rbx
+	je		resolveL2
+	
+	;rdx + (rdi)*8
 	mov 	rbx, rdi
-	shl		rbx, 3				;rdi*8
-	add		rbx, rdx			;rdx + rdi * 8
+	shl		rbx, 3				;(rdi+1)*8
+	add		rbx, rdx			;rdx + (rdi+1) * 8
+	
+	mov  	r9d, dword [rbx]	;DWORD virtual address
+	cmp		ecx, r9d
+	jb		tmp1
+	mov 	r15, 1
+	jmp		tmp2
+	
+	tmp1: 
+	mov 	r15, 0
+	
+	tmp2:
+	;rdx + (rdi+1)*8
+	mov 	rbx, rdi
+	inc 	rbx
+	shl		rbx, 3				;(rdi+1)*8
+	add		rbx, rdx			;rdx + (rdi+1) * 8
 	
 	mov  	r9d, dword [rbx]	;DWORD virtual address
 	
 	cmp		ecx, r9d
-	jae		resolveL2
+	ja		tmp3
+	mov		r14, 1
+	jmp 	tmp4
+	
+	tmp3:
+	mov 	r14, 0
+	
+	tmp4:
+	and		r15, r14
+	cmp		r15, 1
+	je		resolveL2
 	
 	inc		rdi
 	jmp		resolveL1
 	
 	;we have found which section RVA belong to
 	resolveL2:
-	sub		ecx, ebx			;RVA - virtualaddress
+	;rdx + (rdi)*8
+	mov 	rbx, rdi
+	shl		rbx, 3				;rdi*8
+	add		rbx, rdx			;rdx + rdi * 8
+	
+	mov  	r15d, dword [rbx]	;DWORD virtual address
+	sub		ecx, r15d			;RVA - virtualaddress
 	add		rbx, 4
 	mov 	ebx, dword [rbx]	;DWORD pointer to raw data
 	add		rbx, rcx			;RVA - virtualaddress + rawoffset
 	mov 	rax, rbx
 	
 	resolveEnd:
-	
+	pop		r14
+	pop		r15
 	pop		rbx
 	pop		rdi
+	
 	leave
 	ret
