@@ -262,9 +262,9 @@ Start:
 	mov 	r15, rax
 	
 ;LPVOID buffer = HeapAlloc(hHeap, HEAP_ZERO_MEMORY, 50000)
-	mov		r8d, r15d								;dwBytes: size
-	mov		edx, 8									;dwFlags: HEAP_ZERO_MEMORY
-	mov		rcx, [hHeap]							;hHeap
+	mov     r8d, r15d       						;dwBytes: size
+	mov     edx, 8          						;dwFlags: HEAP_ZERO_MEMORY
+	mov     rcx, [hHeap] 							;hHeap
 	sub 	rsp, 32
 	call    HeapAlloc
 	add 	rsp, 32
@@ -619,7 +619,15 @@ Start:
 	add 	rbx, rax								;load address of PE header
 
 	
-
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	
 ;NT HEADER
 	;WriteConsoleA(hStdout, "+--------------------------------------------------------------------+", dos_len, &writtenlen, nullptr)
@@ -1063,7 +1071,7 @@ PrintPE32:
 	mov 	rcx, sizeofheapcom						;Debug string
 	mov 	rdx, rbx								;buffer
 	mov		r8d, 4									;buffer length
-	call	PrintHex
+	call	PrintHex	
 
 ;LoaderFlags
 	add 	rbx, 4
@@ -1071,7 +1079,7 @@ PrintPE32:
 	mov 	rcx, loaderflag							;Debug string
 	mov 	rdx, rbx								;buffer
 	mov		r8d, 4									;buffer length
-	call	PrintHex
+	call	PrintHex	
 
 ;NumberOfRvaAndSizes
 	add 	rbx, 4
@@ -1079,7 +1087,7 @@ PrintPE32:
 	mov 	rcx, numofrvaandsize					;Debug string
 	mov 	rdx, rbx								;buffer
 	mov		r8d, 4									;buffer length
-	call	PrintHex
+	call	PrintHex		
 
 ;ExportDirectory RVA Address
 	add		rbx, 4
@@ -1122,22 +1130,22 @@ PrintPE32:
 
 	
 ;IMAGE SECTION HEADER
-	ish:
+	
 	;calculate section table offset
-	mov		rcx, [rbp-72]
+	mov 	rcx, [rbp-72]
 	movzx	rdx, word [rbp-80]
 	add		rcx, rdx	
 	mov		rbx, rcx
 
 	;WriteConsoleA(hStdout, "+--------------------------------------------------------------------+", dos_len, &writtenlen, nullptr)
-	push	0
-	lea		r9, [rbp-16]
-	mov		r8d, ish_len
-	mov		rdx, ish1
-	mov		rcx, [hStdout]
-	sub		rsp, 32
-	call	WriteConsoleA
-	add		rsp, 40
+	push 	0
+	lea 	r9, [rbp-16]
+	mov 	r8d, ish_len
+	mov 	rdx, ish1
+	mov 	rcx, [hStdout]
+	sub 	rsp, 32
+	call 	WriteConsoleA
+	add 	rsp, 40
 	
 	;WriteConsoleA(hStdout, crlf, 2, &writtenlen, nullptr)
 	push 	0
@@ -1160,24 +1168,24 @@ PrintPE32:
 	add 	rsp, 40
 
 	;WriteConsoleA(hStdout, crlf, 2, &writtenlen, nullptr)
-	push	0
-	lea		r9, [rbp-16]
-	mov		r8d, 2
-	mov		rdx, crlf
-	mov		rcx, [hStdout]
-	sub		rsp, 32
-	call	WriteConsoleA
-	add		rsp, 40
+	push 	0
+	lea 	r9, [rbp-16]
+	mov 	r8d, 2
+	mov 	rdx, crlf
+	mov 	rcx, [hStdout]
+	sub 	rsp, 32
+	call 	WriteConsoleA
+	add 	rsp, 40
 
 	;WriteConsoleA(hStdout, "+--------------------------------------------------------------------+", dos_len, &writtenlen, nullptr)
-	push	0
-	lea		r9, [rbp-16]
-	mov		r8d, ish_len
-	mov		rdx, ish1
-	mov		rcx, [hStdout]
-	sub		rsp, 32
-	call	WriteConsoleA
-	add		rsp, 40
+	push 	0
+	lea 	r9, [rbp-16]
+	mov 	r8d, ish_len
+	mov 	rdx, ish1
+	mov 	rcx, [hStdout]
+	sub 	rsp, 32
+	call 	WriteConsoleA
+	add 	rsp, 40
 	
 	;WriteConsoleA(hStdout, crlf, 2, &writtenlen, nullptr)
 	push 	0
@@ -1209,7 +1217,7 @@ imgsec:
 	mov 	r8, 6
 	call	strcmp
 	test	rax, rax
-	jz		.L3
+	jz		L3
 	
 	;store import section's virtual address
 	lea		rcx, [rbx+12]
@@ -1219,30 +1227,30 @@ imgsec:
 	lea		rcx, [rbx+20]
 	mov 	ecx, dword [rcx]
 	mov 	dword [rbp-120], ecx
-	jmp		.L4
+	jmp		L4
 	
-	.L3:
+	L3:
 	mov		rcx, rbx
 	mov 	rdx, edata
 	mov 	r8, 6
 	call	strcmp
 	test	rax, rax
-	jz		.L4
+	jz		L4
 	
 	;store export section's virtual address
 	lea		rcx, [rbx+12]
-	mov		ecx, dword [rcx]
-	mov		[rbp-128], ecx
+	mov 	ecx, dword [rcx]
+	mov 	[rbp-128], ecx
 	;store export section's raw address
 	lea		rcx, [rbx+20]
-	mov		ecx, dword [rcx]
-	mov		[rbp-136], ecx
+	mov 	ecx, dword [rcx]
+	mov 	[rbp-136], ecx
 	
-	.L4:
+	L4:
 	
-	mov		rcx, sectionname
-	mov		rdx, rbx
-	mov		r8d, 8
+	mov 	rcx, sectionname
+	mov 	rdx, rbx
+	mov 	r8d, 8
 	call	PrintHex
 
 ;VirtualSize
@@ -1360,10 +1368,10 @@ imgsec:
 	call	SetFilePointer
 	add		rsp, 32
 	
-	;ReadFile(hFile, buffer, 32768, &byteread, nullptr)
+	;ReadFile(hFile, buffer, 1024, &byteread, nullptr)
 	push 	0										;LPOVERLAPPED lpOverlapped: nullptr
-	lea 	r9, [rbp-56]							;LPDWORD lpNumberOfBytesRead: &byteread
-	mov 	r8d, 32768								;nNumberOfBytesToRead: 32768
+	lea 	r9, [rbp-56] 							;LPDWORD lpNumberOfBytesRead: &byteread
+	mov 	r8d, 1024								;nNumberOfBytesToRead: 1024
 	mov 	rdx, [rbp-48]							;LPVOID lpBuffer: buffer
 	mov 	rcx, [rbp-40]							;HANDLE hFile: hFile
 	sub 	rsp, 32
@@ -1371,27 +1379,12 @@ imgsec:
 	add 	rsp, 40
 	
 	;if (ReadFile == 0) then exit error
-	cmp		rax, 0
-	je		EndError
+	cmp 	rax, 0
+	je  	EndError
 	
 	mov 	ebx, [rbp-48]							;buffer
 
-	;Allocate a buffer to read (128 bytes)
-	mov		r8d, 128								;dwBytes: 128
-	mov		edx, 8									;dwFlags: HEAP_ZERO_MEMORY
-	mov		rcx, [hHeap]							;hHeap
-	call	HeapAlloc
-	mov		r15, rax
-
-	importdirectoryprint:
-	;Reallocate buffer
-	mov		r9d, 128								;dwBytes: 128
-	mov 	r8, r15
-	mov		edx, 8									;dwFlags: HEAP_ZERO_MEMORY
-	mov		rcx, [hHeap]							;hHeap
-	call	HeapReAlloc
-	mov		r15, rax
-
+	importdirectoryprint:			
 	mov 	rdx, rbx								;Data
 	mov 	rcx, origifirstthunk					;debug string
 	mov 	r8d, 4									;Length
@@ -1401,7 +1394,7 @@ imgsec:
 	mov 	rcx, timedatestamp						;debug string
 	mov 	rdx, rbx								;Data to print
 	mov 	r8d, 4									;Length
-	call	PrintHex			
+	call 	PrintHex			
 
 	add		rbx, 4			
 	mov 	rcx, forwarderchain						;debug string
@@ -1410,6 +1403,7 @@ imgsec:
 	call 	PrintHex			
 			
 	add		rbx, 4			
+<<<<<<< HEAD
 
 	;name
 	mov 	rcx, name
@@ -1474,28 +1468,26 @@ imgsec:
 	call	WriteConsoleA
 	add		rsp, 40
 
+=======
+	mov 	rcx, name								;debug string
+	mov 	rdx, rbx								;Data to print
+	mov 	r8d, 4									;Length
+	call 	PrintHex			
+			
+>>>>>>> parent of 5cf16f3 (Update b1_w.asm)
 	add		rbx, 4			
 	mov 	rcx, firstthunk							;debug string
 	mov 	rdx, rbx								;Data to print
 	mov 	r8d, 4									;Length
 	call 	PrintHex			
-
-	push	0										;LPVOID  lpReserved 			: nullptr
-	xor		r9, r9									;LPDWORD lpNumberOfCharsWritten : null
-	mov		r8, 2									;DWORD	nNumberOfCharsToWrite	: 2
-	mov 	rdx, crlf								;VOID    *lpBuffer				: crlf
-	mov 	rcx, [hStdout]							;HANDLE  hConsoleOutput			: hStdout
-	sub		rsp, 32
-	call	WriteConsoleA
-	add		rsp, 40			
-
+				
 	add		rbx, 4			
 	mov		eax, dword [rbx]			
 	cmp		rax, 0			
 	jne		importdirectoryprint			
 				
 exportdir:			
-;Export Directory
+;Export Directory			
 	mov 	eax, dword [rbp-88]						;exportrva
 				
 	cmp 	rax, 0			
@@ -1534,338 +1526,18 @@ exportdir:
 	mov 	ebx, [rbp-48]							;buffer
 	
 	exportdirectoryprint:
-		;Reallocate buffer
-		mov		r9d, 128								;dwBytes: 128
-		mov 	r8, r15
-		mov		edx, 8									;dwFlags: HEAP_ZERO_MEMORY
-		mov		rcx, [hHeap]							;hHeap
-		call	HeapReAlloc
-		mov		r15, rax
-
-		mov 	rdx, rbx								;Data
-		mov 	rcx, origifirstthunk					;debug string
-		mov 	r8d, 4									;Length
-		call 	PrintHex
-		
-		add		rbx, 4
-		mov 	rcx, timedatestamp						;debug string
-		mov 	rdx, rbx								;Data to print
-		mov 	r8d, 4									;Length
-		call 	PrintHex
-		
-		add		rbx, 4
-		mov 	rcx, forwarderchain						;debug string
-		mov 	rdx, rbx								;Data to print
-		mov 	r8d, 4									;Length
-		call 	PrintHex
-
-		add		rbx, 4
-	;name
-		mov 	rcx, name
-		call	lstrlenA
-		mov 	r8d, eax
-
-		;WriteConsoleA(hStdout, name, lstrlenA(name), &writtenlen, nullptr)
-		push 	0										;LPVOID  lpReserved				: nullptr
-		lea 	r9, [rbp-56]							;LPDWORD lpNumberOfCharsWritten	: &writtenlen
-		;r8d											;DWORD   nNumberOfCharsToWrite	: lstrlenA(name)
-		mov 	rdx, name								;VOID    *lpBuffer 				: name
-		mov 	rcx, [hStdout]							;HANDLE  hConsoleOutput			: hStdout
-		sub 	rsp, 32
-		call 	WriteConsoleA
-		add 	rsp, 40
-
-		mov		ecx, [rbx]								;Dll name RVA
-		mov		rdx, [rbp-144]							;LPVOID sectionarray
-		mov		r8, [rbp-104]							
-		mov		r8d, [r8]								;DWORD numberofsection
-		call	resolveRVAtoFileOffset
-
-		;SetFilePointer(hFile, fileoffset, null, FILE_BEGIN)
-		xor		r9, r9									;DWORD  dwMoveMethod: 0 (FILE_BEGIN)
-		xor 	r8, r8									;PLONG  lpDistanceToMoveHigh: null
-		mov		rdx, rax								;LONG   lDistanceToMove: fileoffset
-		mov 	rcx, [rbp-40]							;HANDLE hFile: hFile
-		sub		rsp, 32
-		call	SetFilePointer
-		add		rsp, 32
-
-		;Read dll name
-		;ReadFile(hFile, buffer, 1024, &byteread, nullptr)
-		push	0										;LPOVERLAPPED lpOverlapped: nullptr
-		lea 	r9, [rbp-56]							;LPDWORD lpNumberOfBytesRead: &byteread
-		mov 	r8d, 128								;nNumberOfBytesToRead: 1024
-		mov 	rdx, r15								;LPVOID lpBuffer: allocated buffer on r15
-		mov 	rcx, [rbp-40]							;HANDLE hFile: hFile
-		sub 	rsp, 32
-		call	ReadFile
-		add 	rsp, 40
-
-		;Print dll name
-		mov		rcx, r15
-		call	lstrlenA								;calculate dll name length
-		
-		push	0										;LPVOID  lpReserved 			:nullptr
-		mov		r9, [rbp-56]							;LPDWORD lpNumberOfCharsWritten : &writtenlen
-		mov		r8, rax									;DWORD	nNumberOfCharsToWrite	:dll name's length
-		mov 	rdx, r15								;VOID    *lpBuffer
-		mov 	rcx, [hStdout]							;HANDLE  hConsoleOutput			: hStdout
-		sub		rsp, 32
-		call	WriteConsoleA
-		add		rsp, 40
+	mov 	rdx, rbx								;Data
+	mov 	rcx, origifirstthunk					;debug string
+	mov 	r8d, 4									;Length
+	call 	PrintHex
 	
-
-		add		rbx, 4
-		mov 	rcx, firstthunk							;debug string
-		mov 	rdx, rbx								;Data to print
-		mov 	r8d, 4									;Length
-		call 	PrintHex
-		
-		add		rbx, 4
-		mov		eax, dword [rbx]
-		cmp		rax, 0
-	jne		exportdirectoryprint
-
-L2:
-	jmp		End
-	
-	
-PrintPE64:
-;MajorLinkerVersion 
-	add 	rbx, 2
-
-	mov 	rcx, majorlinkver						;Debug string
-	mov 	rdx, rbx								;buffer
-	mov		r8d, 1									;buffer length
-	call	PrintHex
-
-;MinorLinkerVersion 
-	add 	rbx, 1
-
-	mov 	rcx, minorlinkver						;Debug string
-	mov 	rdx, rbx								;buffer
-	mov		r8d, 1									;buffer length
-	call	PrintHex
-	
-;SizeOfCode 
-	add 	rbx, 1
-
-	mov 	rcx, sizeofcode							;Debug string
-	mov 	rdx, rbx								;buffer
-	mov		r8d, 4									;buffer length
-	call	PrintHex
-
-;SizeOfInitializedData
-	add 	rbx, 4
-
-	mov 	rcx, sizeofinitdata						;Debug string
-	mov 	rdx, rbx								;buffer
-	mov		r8d, 4									;buffer length
-	call	PrintHex	
-
-;SizeOfUninitializedData 
-	add 	rbx, 4
-
-	mov 	rcx, sizeofuninitdat					;Debug string
-	mov 	rdx, rbx								;buffer
-	mov		r8d, 4									;buffer length
-	call	PrintHex
-
-;AddressOfEntryPoint
-	add 	rbx, 4
-
-	mov 	rcx, addrentrypoint						;Debug string
-	mov 	rdx, rbx								;buffer
-	mov		r8d, 4									;buffer length
-	call	PrintHex
-
-;BaseOfCode
-	add 	rbx, 4
-
-	mov 	rcx, baseofcode							;Debug string
-	mov 	rdx, rbx								;buffer
-	mov		r8d, 4									;buffer length
-	call	PrintHex
-
-;ImageBase
-	add 	rbx, 4
-
-	mov 	rcx, imagebase							;Debug string
-	mov 	rdx, rbx								;buffer
-	mov		r8d, 8									;buffer length
-	call	PrintHex
-	
-;SectionAlignment
-	add 	rbx, 8
-
-	mov 	rcx, sectionalign						;Debug string
-	mov 	rdx, rbx								;buffer
-	mov		r8d, 4									;buffer length
-	call	PrintHex
-	
-;FileAlignment
-	add 	rbx, 4
-
-	mov 	rcx, filealign							;Debug string
-	mov 	rdx, rbx								;buffer
-	mov		r8d, 4									;buffer length
-	call	PrintHex
-	
-;majorosver
-	add 	rbx, 4
-
-	mov 	rcx, majorosver							;Debug string
-	mov 	rdx, rbx								;buffer
-	mov		r8d, 2									;buffer length
-	call	PrintHex
-
-;minorosver
-	add 	rbx, 2
-
-	mov 	rcx, minorosver							;Debug string
-	mov 	rdx, rbx								;buffer
-	mov		r8d, 2									;buffer length
-	call	PrintHex
-
-
-;majorimgver
-	add 	rbx, 2
-
-	mov 	rcx, majorimgver						;Debug string
-	mov 	rdx, rbx								;buffer
-	mov		r8d, 2									;buffer length
-	call	PrintHex
-
-
-;minorimgver
-	add 	rbx, 2
-
-	mov 	rcx, minorimgver						;Debug string
-	mov 	rdx, rbx								;buffer
-	mov		r8d, 2									;buffer length
-	call	PrintHex
-
-
-;majorsubsysver
-	add 	rbx, 2
-
-	mov 	rcx, majorsubsysver						;Debug string
-	mov 	rdx, rbx								;buffer
-	mov		r8d, 2									;buffer length
-	call	PrintHex
-
-
-;minorsubsysver
-	add 	rbx, 2
-
-	mov 	rcx, minorsubsysver						;Debug string
-	mov 	rdx, rbx								;buffer
-	mov		r8d, 2									;buffer length
-	call	PrintHex
-
-;win32 ver
-
-	add 	rbx, 2
-
-	mov 	rcx, win32ver							;Debug string
-	mov 	rdx, rbx								;buffer
-	mov		r8d, 4									;buffer length
-	call	PrintHex
-
-;size of image
-
-	add 	rbx, 4
-
-	mov 	rcx, sizeofimage						;Debug string
-	mov 	rdx, rbx								;buffer
-	mov		r8d, 4									;buffer length
-	call	PrintHex
-
-;size of header
-
-	add 	rbx, 4
-
-	mov 	rcx, sizeofheader						;Debug string
-	mov 	rdx, rbx								;buffer
-	mov		r8d, 4									;buffer length
-	call	PrintHex
-
-;check sum
-
-	add 	rbx, 4
-
-	mov 	rcx, checksum							;Debug string
-	mov 	rdx, rbx								;buffer
-	mov		r8d, 4									;buffer length
-	call	PrintHex	
-	
-;subsystem
-	add 	rbx, 4
-
-	mov 	rcx, subsystem							;Debug string
-	mov 	rdx, rbx								;buffer
-	mov		r8d, 2									;buffer length
-	call	PrintHex
-
-;Dllchar
-	add 	rbx, 2
-
-	mov 	rcx, dllchar							;Debug string
-	mov 	rdx, rbx								;buffer
-	mov		r8d, 2									;buffer length
-	call	PrintHex	
-	
-;SizeOfStackReserve
-	add 	rbx, 2
-
-	mov 	rcx, sizeStackResv						;Debug string
-	mov 	rdx, rbx								;buffer
-	mov		r8d, 8									;buffer length
-	call	PrintHex		
-	
-;SizeOfStackCommit
-	add 	rbx, 8
-
-	mov 	rcx, sizeofstackcom						;Debug string
-	mov 	rdx, rbx								;buffer
-	mov		r8d, 8									;buffer length
-	call	PrintHex		
-
-;SizeOfHeapReversed
-	add 	rbx, 8
-
-	mov 	rcx, sizeofheapres						;Debug string
-	mov 	rdx, rbx								;buffer
-	mov		r8d, 8									;buffer length
-	call	PrintHex	
-
-;SizeOfHeapCommit
-	add 	rbx, 8
-
-	mov 	rcx, sizeofheapcom						;Debug string
-	mov 	rdx, rbx								;buffer
-	mov		r8d, 8									;buffer length
-	call	PrintHex	
-	
-;LoaderFlags
-	add 	rbx, 8
-
-	mov 	rcx, loaderflag							;Debug string
-	mov 	rdx, rbx								;buffer
-	mov		r8d, 4									;buffer length
-	call	PrintHex
-
-;NumberOfRvaAndSizes
-	add 	rbx, 4
-
-	mov 	rcx, numofrvaandsize					;Debug string
-	mov 	rdx, rbx								;buffer
-	mov		r8d, 4									;buffer length
-	call	PrintHex
-	
-;ExportDirectory RVA Address
 	add		rbx, 4
+	mov 	rcx, timedatestamp						;debug string
+	mov 	rdx, rbx								;Data to print
+	mov 	r8d, 4									;Length
+	call 	PrintHex
 	
+<<<<<<< HEAD
 	mov 	eax, dword [rbx]
 	mov 	[rbp-88], rax
 	
@@ -1875,15 +1547,16 @@ PrintPE64:
 	call	PrintHex
 	
 ;ExportDirectory Size
+=======
+>>>>>>> parent of 5cf16f3 (Update b1_w.asm)
 	add		rbx, 4
-	
-	mov 	rcx, exportsize							;Debug string
-	mov 	rdx, rbx								;buffer
-	mov		r8d, 4									;buffer length
-	call	PrintHex
-	
-;ImportDirectory RVA Address
+	mov 	rcx, forwarderchain						;debug string
+	mov 	rdx, rbx								;Data to print
+	mov 	r8d, 4									;Length
+	call 	PrintHex
+
 	add		rbx, 4
+<<<<<<< HEAD
 	
 	xor 	
 	mov 	eax, dword [rbx]
@@ -1895,14 +1568,29 @@ PrintPE64:
 	call	PrintHex
 	
 ;ImportDirectory Size
+=======
+	mov 	rcx, name								;debug string
+	mov 	rdx, rbx								;Data to print
+	mov 	r8d, 4									;Length
+	call 	PrintHex
+
+>>>>>>> parent of 5cf16f3 (Update b1_w.asm)
 	add		rbx, 4
+	mov 	rcx, firstthunk							;debug string
+	mov 	rdx, rbx								;Data to print
+	mov 	r8d, 4									;Length
+	call 	PrintHex
 	
-	mov 	rcx, importsize							;Debug string
-	mov 	rdx, rbx								;buffer
-	mov		r8d, 4									;buffer length
-	call	PrintHex	
-		
-	jmp 	ish
+	add		rbx, 4
+	mov		eax, dword [rbx]
+	cmp		rax, 0
+	jne		exportdirectoryprint
+
+L2:
+	jmp		End
+PrintPE64:
+
+	jmp		End
 
 ;====================================================================================================================	
 Itoa: ;int[rax] Itoa(int64[rcx], void* buf[rdx], int bufferlen[r8d])
@@ -1916,22 +1604,22 @@ Itoa: ;int[rax] Itoa(int64[rcx], void* buf[rdx], int bufferlen[r8d])
 	push r13
 	
 	cmp rcx,0
-	jg .L0
+	jg ItoaL0
 	mov byte[rdx], 48
 	mov r15d, 1
-	jmp .End
+	jmp ItoaEnd
 	;Initialization
-	.L0:
+	ItoaL0:
 	
 	xor  	r15, r15								;r15: char count = 0
 	mov 	r14, rdx								;r14: buffer
 	mov 	rax, rcx								;rax: dividend
-	.L1:
+	ItoaL1:
 	;Comparison
 	cmp  	rax, 0									;check if fully converted
-	je  	.L2
+	je  	ItoaL2
 	cmp 	r15, r8									;check if ran out of buffer
-	jg  	.L2
+	jg  	ItoaL2
 	;Loop
 	xor 	rdx, rdx								;[rdx:rax] = rax (zero rdx)
 	mov 	rdi, 10											
@@ -1941,23 +1629,23 @@ Itoa: ;int[rax] Itoa(int64[rcx], void* buf[rdx], int bufferlen[r8d])
 	add 	rdx, 48									;convert to ascii char
 	push	rdx										;push remainter on stack
 	inc 	r15										;counter++
-	jmp 	.L1
-	.L2:	;Processing characters to data buffer
+	jmp 	ItoaL1
+	ItoaL2:	;Processing characters to data buffer
 	;for (r13 = 0 , (loop counter)r13 < r15(char counter), r13++)
 	;Initialization
 	xor 	r13, r13 								;loop counter = 0
-	.L3:	
+	ItoaL3:	
 	;Comparison
 	cmp 	r13, r15								;if r13 < r15 -> enter loop
-	jl  	.L4									;else quit
-	jmp 	.End
-	.L4:
+	jl  	ItoaL4									;else quit
+	jmp 	ItoaEnd
+	ItoaL4:
 	pop 	rax
 	mov		byte [r14], al
 	inc 	r13
 	inc 	r14
-	jmp 	.L3
-	.End:
+	jmp 	ItoaL3
+	ItoaEnd:
 	mov 	eax, r15d								;return char count
 	
 	pop 	r13										;Callee save register
@@ -2049,12 +1737,12 @@ PrintHex: ;rcx: Debug string, rdx: data to print, r8d: data size in byte
 	call	lstrlenA
 	mov 	r8d, eax
 
-	;WriteConsoleA(hStdout, debugstring, lstrlenA(debugstring), &writtenlen, nullptr)
+	;WriteConsoleA(hStdout, minorsubsysver, lstrlenA(minorsubsysver), &writtenlen, nullptr)
 
 	push 	0										;LPVOID  lpReserved 			: nullptr
 	lea 	r9, [rbp-8]								;LPDWORD lpNumberOfCharsWritten : &writtenlen
-													;DWORD   nNumberOfCharsToWrite 	: lstrlenA(debugstring)
-	mov 	rdx, r13								;VOID    *lpBuffer 				: debugstring
+													;DWORD   nNumberOfCharsToWrite 	: lstrlenA(minorsubsysver)
+	mov 	rdx, r13								;VOID    *lpBuffer 				: baseofdata
 	mov 	rcx, [hStdout]							;HANDLE  hConsoleOutput			: hStdout
 	sub 	rsp, 32
 	call 	WriteConsoleA
@@ -2132,8 +1820,8 @@ strcmp: ;Rcx: LPVOID string1, rdx: LPVOID string2, int64 r8: requestedlength
 	xor 	rax, rax
 	
 	;if requestedlength is 0, we quit
-	cmp		r8, 0
-	je		.end
+	cmp 	r8, 0
+	je		strcmpEnd
 	
 	
 	mov 	r9, rcx
@@ -2141,9 +1829,9 @@ strcmp: ;Rcx: LPVOID string1, rdx: LPVOID string2, int64 r8: requestedlength
 	add		rdx, rcx
 	add		r9, rcx
 	
-	.loop:
-	mov		r15, rdx
-	sub		r15, rcx
+	strcmpLoop:
+	mov 	r15, rdx
+	sub 	r15, rcx
 	movzx	r15, byte[r15]
 	
 	mov 	r14, r9
@@ -2151,12 +1839,12 @@ strcmp: ;Rcx: LPVOID string1, rdx: LPVOID string2, int64 r8: requestedlength
 	movzx	r14, byte[r14]
 	
 	cmp		r14, r15
-	jne		.end
+	jne		strcmpEnd
 	
-	loop	.loop
+	loop	strcmpLoop
 	mov 	rax, 1
 	
-	.end:
+	strcmpEnd:
 	pop		r14
 	pop		r15
 	pop		rdi
@@ -2164,8 +1852,8 @@ strcmp: ;Rcx: LPVOID string1, rdx: LPVOID string2, int64 r8: requestedlength
 	leave
 	ret
 
-resolveRVAtoFileOffset: ;ecx: DWORD rva address | rdx: LPVOID array of virtual address(V)(DWORD) and pointer to raw data (P)(DWORD). Format: VPVPVPVP.... | r8d: DWORD number of section
-						;rdx: LPVOID array of virtual address(V)(DWORD) and pointer to raw data (P)(DWORD). Format: VPVPVPVP....
+resolveRVAtoFileOffset: ;ecx: DWORD rva address
+						;rdx: LPVOID array of virtual address(V)(DWORD) and pointer to raw data (P)(DWORD). Format: VPVPVPVP.... 
 						;r8d: DWORD number of section
 	;function return file offset on success, return null otherwise
 	push 	rbp
@@ -2179,14 +1867,13 @@ resolveRVAtoFileOffset: ;ecx: DWORD rva address | rdx: LPVOID array of virtual a
 	xor 	rdi, rdi
 	xor		r15, r15
 	xor 	r14, r14
-	
-	.loop:
+	resolveL1:
 	cmp 	r8, rdi
-	je		.end
+	je		resolveEnd
 	
 	lea 	rbx, [r8-1]
 	cmp 	rdi, rbx
-	je		.foundsection
+	je		resolveL2
 	
 	;rdx + (rdi)*8
 	mov 	rbx, rdi
@@ -2195,14 +1882,14 @@ resolveRVAtoFileOffset: ;ecx: DWORD rva address | rdx: LPVOID array of virtual a
 	
 	mov  	r9d, dword [rbx]						;DWORD virtual address
 	cmp		ecx, r9d
-	jb		.L1
+	jb		tmp1
 	mov 	r15, 1
-	jmp		.L2
+	jmp		tmp2
 	
-	.L1: 
+	tmp1: 
 	mov 	r15, 0
 	
-	.L2:
+	tmp2:
 	;rdx + (rdi+1)*8
 	mov 	rbx, rdi
 	inc 	rbx
@@ -2212,23 +1899,23 @@ resolveRVAtoFileOffset: ;ecx: DWORD rva address | rdx: LPVOID array of virtual a
 	mov  	r9d, dword [rbx]						;DWORD virtual address
 	
 	cmp		ecx, r9d
-	ja		.L3
+	ja		tmp3
 	mov		r14, 1
-	jmp 	.L4
+	jmp 	tmp4
 	
-	.L3:
+	tmp3:
 	mov 	r14, 0
 	
-	.L4:
+	tmp4:
 	and		r15, r14
 	cmp		r15, 1
-	je		.foundsection
+	je		resolveL2
 	
 	inc		rdi
-	jmp		.loop
+	jmp		resolveL1
 	
 	;we have found which section RVA belong to
-	.foundsection:
+	resolveL2:
 	;rdx + (rdi)*8
 	mov 	rbx, rdi
 	shl		rbx, 3									;rdi*8
@@ -2241,7 +1928,7 @@ resolveRVAtoFileOffset: ;ecx: DWORD rva address | rdx: LPVOID array of virtual a
 	add		rbx, rcx								;RVA - virtualaddress + rawoffset
 	mov 	rax, rbx
 	
-	.end:
+	resolveEnd:
 	pop		r14
 	pop		r15
 	pop		rbx
