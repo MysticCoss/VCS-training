@@ -1429,7 +1429,7 @@ imgsec:
 	mov		ecx, [rbx]								;Dll name RVA
 	mov		rdx, [rbp-144]							;LPVOID sectionarray
 	mov		r8, [rbp-104]							
-	mov		r8d, [r8]								;DWORD numberofsection
+	movzx	r8d,word [r8]								;WORD numberofsection
 	call	resolveRVAtoFileOffset
 
 	;SetFilePointer(hFile, fileoffset, null, FILE_BEGIN)
@@ -1867,7 +1867,7 @@ PrintPE64:
 	add		rbx, 4
 	
 	mov 	eax, dword [rbx]
-	mov 	[rbp-88], eax
+	mov 	[rbp-88], rax
 	
 	mov 	rcx, exportrva							;Debug string
 	mov 	rdx, rbx								;buffer
@@ -1885,8 +1885,9 @@ PrintPE64:
 ;ImportDirectory RVA Address
 	add		rbx, 4
 	
+	xor 	
 	mov 	eax, dword [rbx]
-	mov 	[rbp-96], eax
+	mov 	[rbp-96], rax
 	
 	mov 	rcx, importrva							;Debug string
 	mov 	rdx, rbx								;buffer
