@@ -1,6 +1,6 @@
 ;Compile & link command
 ;nasm -f win64 -g -o b1_w.obj b1_w.asm 
-;.\GoLink /files /console /debug coff b1_w.obj kernel32.dll shell32.dll
+;.\GoLink /files /console /debug dbg b1_w.obj kernel32.dll shell32.dll Crypt32.dll
 
 bits 64
 default rel
@@ -129,6 +129,7 @@ segment .data
     icharacteristic	db "Characteristics :                              ", 0
 	
 	;Image import descriptor
+	importdir		db "+--------------------------------------------------------------------------------------------------+", 13, 10, "|                                         IMPORT DIRECTORY                                         |", 13, 10, "+--------------------------------------------------------------------------------------------------+", 13, 10, 0
 	origifirstthunk	db "Original first thunk :                         ", 0
 	;timedatestamp (already defined)
 	forwarderchain	db "Forwarder chain :                              ", 0
@@ -136,6 +137,7 @@ segment .data
 	firstthunk		db "First thunk :                                  ", 0
 	
 	;IMAGE EXPORT DIRECTORY
+	exportdirr		db 13, 10, "+--------------------------------------------------------------------------------------------------+", 13, 10, "|                                         EXPORT DIRECTORY                                         |", 13, 10, "+--------------------------------------------------------------------------------------------------+", 13, 10, 0
 	;characteristics
 	;timedatestamp
 	majorver		db "Major version :                                ", 0
@@ -145,8 +147,8 @@ segment .data
 	numoffunc		db "Number of function :                           ", 0
 	numofname       db "Number of name :                               ", 0
 	addressfunc     db "Address of function :                          ", 0
-	addressname     db "                                               ", 0
-	addressnameordi	db "                                               ", 0
+	addressname     db "Address of name :                              ", 0
+	addressnameordi	db "Address of name ordinal :                      ", 0
 segment .bss
 	hStdin resq 1
 	hStdout resq 1
@@ -1358,6 +1360,18 @@ imgsec:
 	
 	
 ;Import Directory
+	mov		rcx, importdir
+	call	lstrlenA
+	mov 	r8, rax
+	;WriteConsoleA(hStdout, importdir, lstrlenA(importdir), nullptr, nullptr)
+	push 	0
+	xor 	r9, r9
+	mov 	rdx, importdir
+	mov 	rcx, [hStdout]
+	sub 	rsp, 32
+	call 	WriteConsoleA
+	add 	rsp, 40
+
 	;load import rva
 	mov 	eax, dword [rbp-96]						;importrva
 	
@@ -1499,7 +1513,19 @@ imgsec:
 	jne		importdirectoryprint			
 				
 exportdir:			
-;Export Directory			
+;Export Directory	
+	mov		rcx, exportdirr
+	call	lstrlenA
+	mov 	r8, rax
+	;WriteConsoleA(hStdout, exportdirr, lstrlenA(exportdirr), nullptr, nullptr)
+	push 	0
+	xor 	r9, r9
+	mov 	rdx, exportdirr
+	mov 	rcx, [hStdout]
+	sub 	rsp, 32
+	call 	WriteConsoleA
+	add 	rsp, 40
+		
 	mov 	eax, dword [rbp-88]						;exportrva
 				
 	cmp 	rax, 0			
@@ -1550,75 +1576,58 @@ exportdir:
 	call 	PrintHex
 	
 	add		rbx, 4
-	mov 	rcx, forwarderchain						;debug string
+	mov 	rcx, majorver							;debug string
 	mov 	rdx, rbx								;Data to print
-	mov 	r8d, 4									;Length
+	mov 	r8d, 2									;Length
 	call 	PrintHex
 
-	add		rbx, 4
-
-	;name
-	mov 	rcx, name
-	call	lstrlenA
-	mov 	r8d, eax
-	;WriteConsoleA(hStdout, name, lstrlenA(name), &writtenlen, nullptr)
-	push 	0										;LPVOID  lpReserved				: nullptr
-	lea 	r9, [rbp-56]							;LPDWORD lpNumberOfCharsWritten	: &writtenlen
-	;r8d											;DWORD   nNumberOfCharsToWrite	: lstrlenA(name)
-	mov 	rdx, name								;VOID    *lpBuffer 				: name
-	mov 	rcx, [hStdout]							;HANDLE  hConsoleOutput			: hStdout
-	sub 	rsp, 32
-	call 	WriteConsoleA
-	add 	rsp, 40
-	mov		ecx, [rbx]								;Dll name RVA
-	mov		rdx, [rbp-144]							;LPVOID sectionarray
-	mov		r8, [rbp-104]							
-	mov		r8d, [r8]								;DWORD numberofsection
-	call	resolveRVAtoFileOffset
-	;SetFilePointer(hFile, fileoffset, null, FILE_BEGIN)
-	xor		r9, r9									;DWORD  dwMoveMethod: 0 (FILE_BEGIN)
-	xor 	r8, r8									;PLONG  lpDistanceToMoveHigh: null
-	mov		rdx, rax								;LONG   lDistanceToMove: fileoffset
-	mov 	rcx, [rbp-40]							;HANDLE hFile: hFile
-	sub		rsp, 32
-	call	SetFilePointer
-	add		rsp, 32
-	;Read dll name
-	;ReadFile(hFile, buffer, 1024, &byteread, nullptr)
-	push	0										;LPOVERLAPPED lpOverlapped: nullptr
-	lea 	r9, [rbp-56]							;LPDWORD lpNumberOfBytesRead: &byteread
-	mov 	r8d, 128								;nNumberOfBytesToRead: 1024
-	mov 	rdx, r15								;LPVOID lpBuffer: allocated buffer on r15
-	mov 	rcx, [rbp-40]							;HANDLE hFile: hFile
-	sub 	rsp, 32
-	call	ReadFile
-	add 	rsp, 40
-	;Print dll name
-	mov		rcx, r15
-	call	lstrlenA								;calculate dll name length
+	add		rbx, 2
+	mov 	rcx, minorver							;debug string
+	mov 	rdx, rbx								;Data to print
+	mov 	r8d, 2									;Length
+	call 	PrintHex
 	
-	push	0										;LPVOID  lpReserved 			:nullptr
-	mov		r9, [rbp-56]							;LPDWORD lpNumberOfCharsWritten : &writtenlen
-	mov		r8, rax									;DWORD	nNumberOfCharsToWrite	:dll name's length
-	mov 	rdx, r15								;VOID    *lpBuffer
-	mov 	rcx, [hStdout]							;HANDLE  hConsoleOutput			: hStdout
-	sub		rsp, 32
-	call	WriteConsoleA
-	add		rsp, 40
-
-
-
-	add		rbx, 4
-	mov 	rcx, firstthunk							;debug string
+	add		rbx, 2
+	mov 	rcx, name								;debug string
 	mov 	rdx, rbx								;Data to print
 	mov 	r8d, 4									;Length
 	call 	PrintHex
 	
 	add		rbx, 4
-	mov		eax, dword [rbx]
-	cmp		rax, 0
-	jne		exportdirectoryprint
-
+	mov 	rcx, base								;debug string
+	mov 	rdx, rbx								;Data to print
+	mov 	r8d, 4									;Length
+	call 	PrintHex
+	
+	add		rbx, 4
+	mov 	rcx, numoffunc							;debug string
+	mov 	rdx, rbx								;Data to print
+	mov 	r8d, 4									;Length
+	call 	PrintHex
+	
+	add		rbx, 4
+	mov 	rcx, numofname							;debug string
+	mov 	rdx, rbx								;Data to print
+	mov 	r8d, 4									;Length
+	call 	PrintHex
+	
+	add		rbx, 4
+	mov 	rcx, addressfunc						;debug string
+	mov 	rdx, rbx								;Data to print
+	mov 	r8d, 4									;Length
+	call 	PrintHex
+	
+	add		rbx, 4
+	mov 	rcx, addressname						;debug string
+	mov 	rdx, rbx								;Data to print
+	mov 	r8d, 4									;Length
+	call 	PrintHex
+	
+	add		rbx, 4
+	mov 	rcx, addressnameordi					;debug string
+	mov 	rdx, rbx								;Data to print
+	mov 	r8d, 4									;Length
+	call 	PrintHex
 L2:
 	jmp		End
 PrintPE64:
