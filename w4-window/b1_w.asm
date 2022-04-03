@@ -182,12 +182,12 @@ Start:
 	sub		rsp, 256								;Allocate 256 bytes in stack
 	;x64 calling convention : left->right RCX, RDX, R8, R9
 	;Local variable:
-	;offset -152 : DWORD bufferpointer
+	;offset -152 : 
 	;offset -144 : LPVOID sectionarray
-	;offset -136 : DWORD exportrawaddress
-	;offset -128 : DWORD exportvirtualaddress
-	;offset -120 : DWORD importrawaddress
-	;offset -112 : DWORD importvirtualaddress
+	;offset -136 : 
+	;offset -128 : 
+	;offset -120 : 
+	;offset -112 : 
 	;offset -104 : WORD numberofsection
 	;offset -96  : DWORD importrva
 	;offset -88  : DWORD exportrva
@@ -272,9 +272,13 @@ Start:
 	xor		rdx, rdx
 	mov 	rcx, [rbp-40]
 	call	GetFileSize
-
-	mov 	r15, rax
 	
+	;ensure we do not read more than file size
+	cmp 	rax, 2048
+	jb		L1
+	mov		rax, 2048
+L1:
+	mov 	r15, rax
 ;LPVOID buffer = HeapAlloc(hHeap, HEAP_ZERO_MEMORY, 50000)
 	mov     r8d, r15d       						;dwBytes: size
 	mov     edx, 8          						;dwFlags: HEAP_ZERO_MEMORY
@@ -285,11 +289,10 @@ Start:
 	
 	mov 	[rbp-48], rax 							;LPVOID buffer
 	
-	mov 	qword [rbp-152], 0							;bufferpointer = 0
-;ReadFile(hFile, buffer, 50000, &byteread, nullptr)
+;ReadFile(hFile, buffer, 2048, &byteread, nullptr)
 	push 	0										;LPOVERLAPPED lpOverlapped: nullptr
 	lea 	r9, [rbp-56] 							;LPDWORD lpNumberOfBytesRead: &byteread
-	mov 	r8d, 50000								;nNumberOfBytesToRead: size
+	mov 	r8d, r15d								;nNumberOfBytesToRead: size or 2048 byte
 	mov 	rdx, rax								;LPVOID lpBuffer: buffer
 	mov 	rcx, [rbp-40]							;HANDLE hFile: hFile
 	sub 	rsp, 32
@@ -303,9 +306,9 @@ Start:
 ;rbx is used as iterator on buffer memory zone
 	mov 	rbx, [rbp-48]							;LPVOID buffer
 	
-;WriteConsoleA(hStdout, "+--------------------------------------------------------------------+", dos_len, &writtenlen, nullptr)
+;WriteConsoleA(hStdout, "+--------------------------------------------------------------------+", dos_len, nullptr, nullptr)
 	push 	0
-	lea 	r9, [rbp-16]
+	xor 	r9, r9
 	mov 	r8d, dos_len
 	mov 	rdx, dos1
 	mov 	rcx, [hStdout]
@@ -315,7 +318,7 @@ Start:
 	
 ;WriteConsoleA(hStdout, crlf, 2, &writtenlen, nullptr)
 	push 	0
-	lea 	r9, [rbp-16]
+	xor 	r9, r9
 	mov 	r8d, 2
 	mov 	rdx, crlf
 	mov 	rcx, [hStdout]
@@ -323,9 +326,9 @@ Start:
 	call 	WriteConsoleA
 	add 	rsp, 40
 	
-;WriteConsoleA(hStdout, "|                             DOS HEADER                             |", dos_len, &writtenlen, nullptr)
+;WriteConsoleA(hStdout, "|                             DOS HEADER                             |", dos_len, nullptr, nullptr)
 	push 	0
-	lea 	r9, [rbp-16]
+	xor 	r9, r9
 	mov 	r8d, dos_len
 	mov 	rdx, dos2
 	mov 	rcx, [hStdout]
@@ -333,9 +336,9 @@ Start:
 	call 	WriteConsoleA
 	add 	rsp, 40
 	
-;WriteConsoleA(hStdout, crlf, 2, &writtenlen, nullptr)
+;WriteConsoleA(hStdout, crlf, 2, nullptr, nullptr)
 	push 	0
-	lea 	r9, [rbp-16]
+	xor 	r9, r9
 	mov 	r8d, 2
 	mov 	rdx, crlf
 	mov 	rcx, [hStdout]
@@ -343,9 +346,9 @@ Start:
 	call 	WriteConsoleA
 	add 	rsp, 40
 	
-;WriteConsoleA(hStdout, "+--------------------------------------------------------------------+", dos_len, &writtenlen, nullptr)
+;WriteConsoleA(hStdout, "+--------------------------------------------------------------------+", dos_len, nullptr, nullptr)
 	push 	0
-	lea 	r9, [rbp-16]
+	xor 	r9, r9
 	mov 	r8d, dos_len
 	mov 	rdx, dos1
 	mov 	rcx, [hStdout]
@@ -353,9 +356,9 @@ Start:
 	call 	WriteConsoleA
 	add 	rsp, 40
 	
-;WriteConsoleA(hStdout, crlf, 2, &writtenlen, nullptr)
+;WriteConsoleA(hStdout, crlf, 2, nullptr, nullptr)
 	push 	0
-	lea 	r9, [rbp-16]
+	xor 	r9, r9
 	mov 	r8d, 2
 	mov 	rdx, crlf
 	mov 	rcx, [hStdout]
@@ -1226,42 +1229,6 @@ PrintPE32:
 imgsec:
 
 ;Name
-	mov		rcx, rbx
-	mov 	rdx, idata
-	mov 	r8, 6
-	call	strcmp
-	test	rax, rax
-	jz		L3
-	
-	;store import section's virtual address
-	lea		rcx, [rbx+12]
-	mov 	ecx, dword [rcx]
-	mov 	dword [rbp-112], ecx
-	;store import section's raw address
-	lea		rcx, [rbx+20]
-	mov 	ecx, dword [rcx]
-	mov 	dword [rbp-120], ecx
-	jmp		L4
-	
-	L3:
-	mov		rcx, rbx
-	mov 	rdx, edata
-	mov 	r8, 6
-	call	strcmp
-	test	rax, rax
-	jz		L4
-	
-	;store export section's virtual address
-	lea		rcx, [rbx+12]
-	mov 	ecx, dword [rcx]
-	mov 	[rbp-128], ecx
-	;store export section's raw address
-	lea		rcx, [rbx+20]
-	mov 	ecx, dword [rcx]
-	mov 	[rbp-136], ecx
-	
-	L4:
-	
 	mov 	rcx, sectionname
 	mov 	rdx, rbx
 	mov 	r8d, 8
@@ -1920,9 +1887,9 @@ EndInvalid:
 	mov		rcx, [hStdout]							;hStdout
 	mov 	rdx, invalid							;"Invalid input"
 	mov 	r8d, invalidlen							;14
-	mov		r9, [rbp-16]							;&writtenlen
+	xor		r9, r9									;nullptr
 	push 	0
-	call 	WriteConsoleA							;WriteConsoleA(hStdout, "Invalid input", 14, &writtenlen, 0);
+	call 	WriteConsoleA							;WriteConsoleA(hStdout, "Invalid input", 14, nullptr, 0);
 	add		rsp, 40									;Shadow store + clean up paramenter
 
 	jmp 	End
@@ -1942,9 +1909,9 @@ EndError:
 	mov		rcx, [hStdout]							;hStdout
 	mov		rdx, errormsg							;"Some error occured "
 	mov 	r8d, errormsglen						;19
-	mov		r9, [rbp-16]							;&writtenlen
+	xor		r9, r9									;nullptr
 	push 	0
-	call 	WriteConsoleA							;WriteConsoleA(hStdout, "Some error occured ", 19, &writtenlen, 0);
+	call 	WriteConsoleA							;WriteConsoleA(hStdout, "Some error occured ", 19, nullptr, 0);
 	add		rsp, 40									;Shadow store + clean up paramenter
 
 	;GetLastError()
@@ -1963,9 +1930,9 @@ EndError:
 	mov		rcx, [hStdout]							;hStdout
 	mov 	rdx, r15								;Buffer store error code
 	mov 	r8, rax									;Buffer length
-	mov		r9, [rbp-16]							;&writtenlen
+	xor		r9, r9									;nullptr
 	push 	0
-	call 	WriteConsoleA							;WriteConsoleA(hStdout, errorcode, errorcodelen, &writtenlen, 0);
+	call 	WriteConsoleA							;WriteConsoleA(hStdout, errorcode, errorcodelen, nullptr, 0);
 	add		rsp, 40									;Shadow store + clean up paramenter
 	
 	jmp 	End
@@ -1995,12 +1962,12 @@ PrintHex: ;rcx: Debug string, rdx: data to print, r8d: data size in byte
 	call	lstrlenA
 	mov 	r8d, eax
 
-	;WriteConsoleA(hStdout, minorsubsysver, lstrlenA(minorsubsysver), &writtenlen, nullptr)
+	;WriteConsoleA(hStdout, debugstring, lstrlenA(debugstring), &writtenlen, nullptr)
 
 	push 	0										;LPVOID  lpReserved 			: nullptr
 	lea 	r9, [rbp-8]								;LPDWORD lpNumberOfCharsWritten : &writtenlen
-													;DWORD   nNumberOfCharsToWrite 	: lstrlenA(minorsubsysver)
-	mov 	rdx, r13								;VOID    *lpBuffer 				: baseofdata
+													;DWORD   nNumberOfCharsToWrite 	: lstrlenA(debugstring)
+	mov 	rdx, r13								;VOID    *lpBuffer 				: debugstring
 	mov 	rcx, [hStdout]							;HANDLE  hConsoleOutput			: hStdout
 	sub 	rsp, 32
 	call 	WriteConsoleA
@@ -2039,9 +2006,9 @@ PrintHex: ;rcx: Debug string, rdx: data to print, r8d: data size in byte
 	call 	CryptBinaryToStringA
 	add 	rsp, 40
 
-	;WriteConsoleA(hStdout, out, writtenlen, &writtenlen, nullptr)
+	;WriteConsoleA(hStdout, out, writtenlen, nullptr, nullptr)
 	push 	0										;LPVOID  lpReserved 			: nullptr
-	lea 	r9, [rbp-8]								;LPDWORD lpNumberOfCharsWritten : &writtenlen
+	xor 	r9, r9									;LPDWORD lpNumberOfCharsWritten : nullptr
 	mov 	r8d, [rbp-8]							;DWORD   nNumberOfCharsToWrite 	: writtenlen
 	mov 	rdx, [rbp-16]							;VOID    *lpBuffer 				: out
 	mov 	rcx, [hStdout]                          ;HANDLE  hConsoleOutput			: hStdout
