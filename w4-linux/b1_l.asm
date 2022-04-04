@@ -298,8 +298,20 @@ section .bss
     NameSection_offset resb 4
     cur_offset resb 4
 
+global	_start
+
 section .text
+
+
+	;Print desired text to stdout
+	;param: rsi: pointer to buffer, rdx: buffer length
     print:
+		mov 	rax, 1								;syscall write
+		mov 	rdi, 1								;stdout
+		;rsi										;buffer 
+		;rdx										;bufferlength
+		syscall	
+	
         mov eax, 4
         mov ebx, 1
         int 80h
@@ -486,8 +498,8 @@ section .text
             jmp loop_print_name
         .done:
             ret
-    global main
-main:
+
+_start:
 
     ; mov ecx, fileName_msg
     ; mov edx, fileName_msg_len
