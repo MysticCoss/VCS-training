@@ -1,7 +1,8 @@
 ;Compile & link command
 ; nasm -felf32 ./readelf_implement.asm 
 ; gcc -m32 --no-pie ./readelf_implement.o -o ./readelf_implement
-
+bits 64
+default rel
 
 section .data
     lpHexString	db "0123456789ABCDEF"
@@ -15,7 +16,7 @@ section .data
     space_len equ $-space
     newLn db 0Ah, 0h
     max_size equ 100
-    handle dd 0
+    hFile dd 0
     count dd 1
     count_2 dd 1
 ;; Elf Header msgs
@@ -305,184 +306,191 @@ section .text
 
 	;Print desired text to stdout
 	;param: rsi: pointer to buffer, rdx: buffer length
+	;return: rax: number of byte print
     print:
 		mov 	rax, 1								;syscall write
 		mov 	rdi, 1								;stdout
 		;rsi										;buffer 
 		;rdx										;bufferlength
 		syscall	
+        ret
 	
-        mov eax, 4
-        mov ebx, 1
-        int 80h
-        ret
+	;Read input from stdin
+	;param: rsi: pointer to buffer, rdx: requested byte to read
+	;return: rax: number of byte read
     read:
-        mov eax, 3
-        mov ebx, 0
-        int 80h
+		mov 	rax, 0								;syscall read
+		mov 	rdi, 0								;stdin
+		;rsi										;buffer
+		;rdx										;requested length
+		syscall
         ret
+	
+	;Exit with error code
+	;param: rdi: error code
     exit:
-        mov eax, 1
-        mov ebx, 0
-        int 80h
-        ret
+        mov 	rax, 60
+        mov 	rdi, 0
+        syscall
+    
     newline:
-        mov ecx, newLn
-        mov edx, 2
-        call print
-        ret
+		mov 	rsi, lf								;"\n"
+		mov 	rdx, 1								;num char write
+		call	print	
     backspace:
-        mov ecx, space
-        mov edx, space_len
-        call print
+        mov 	rsi, space
+        mov 	rdi, space_len
+        call 	print
         ret
 
     ;;  Input:   edi - input string
-    ;;  Output:  eax - result in integer
+    ;;  Output:  rax - result in integer
     atoi:
-        xor eax, eax            ; set eax = 0
+        xor 	rax, rax            				; set rax = 0
     .loop:
-        movzx ecx, byte [edi]   ; ecx = first byte of edi - input string
-        cmp ecx, byte '-'       ; check input number is negative or positive
-        je .negative
-        jmp .positive
+        movzx 	rcx, byte [rdi]   					; rcx = first byte of rdi - input string
+        cmp 	rcx, byte '-'       				; check input number is negative or positive
+        je 		.negative
+        jmp 	.positive
     .negative:
-        inc edi                 ; skip '-' character
-        movzx ecx, byte [edi]   ; 
-        sub ecx, '0'            ; convert num -> int 
-        jb .done_negative       ; done
-
-        lea eax, [eax*4+eax]    ; eax = eax * 5
-        lea eax, [eax*2+ecx]    ; eax = eax * 5 * 2 + ecx
-        test edi, edi
-        jnz .negative
+        inc 	rdi                 				; skip '-' character
+        movzx 	rcx, byte [rdi]  					; 
+        sub 	rcx, '0'         					; convert num -> int 
+        jb 		.done_negative   					; done
+					
+        lea 	rax, [rax*4+rax] 					; rax = rax * 5
+        lea 	rax, [rax*2+rcx] 					; rax = rax * 5 * 2 + rcx
+        test 	rdi, rdi
+        jnz 	.negative
     .positive:
-        movzx ecx, byte [edi]   ; ecx = first byte of edi - input string
-
-        sub ecx, '0'            ; convert num -> int 
-        jb .done_positive       ; 
-
-        lea eax, [eax*4+eax]    ; eax = eax * 5
-        lea eax, [eax*2+ecx]    ; eax = eax * 5 * 2 + ecx
-        inc edi                 ; next character of string
-        test edi, edi
-        jnz .positive
+        movzx 	rcx, byte [rdi]   					; rcx = first byte of rdi - input string
+					
+        sub 	rcx, '0'            				; convert num -> int 
+        jb		.done_positive       				; 
+					
+        lea 	rax, [rax*4+rax]    				; rax = rax * 5
+        lea 	rax, [rax*2+rcx]    				; rax = rax * 5 * 2 + rcx
+        inc 	rdi                 				; next character of string
+        test 	rdi, rdi
+        jnz 	.positive
     .done_negative: 
-        mov ebx, 0h             ; negative_num = 0 - (- negative_number)
-        sub ebx, eax
-        mov eax, ebx
+        mov 	rbx, 0             					; negative_num = 0 - (- negative_number)
+        sub 	rbx, rax
+        mov 	rax, rbx
         ret
     .done_positive:
         ret
-    ;;  Input:  eax - integer
-    ;;          esi - pointer to result buffer
+
+    ;;  Input:  rax - integer
+    ;;          rsi - pointer to result buffer
     ;;  Output: in buffer
     itoa:
-        add esi, max_size       ; point to the last of result buffer
-        mov byte [esi], 0h      ; set the last byte of result buffser to null
-        mov ebx, 10             ; ebx = 10
-        xor edi, edi
-        cmp eax, 0h
-        jge .loop_positive
-        neg eax
+        add 	rsi, max_size       				; point to the last of result buffer
+        mov 	byte [rsi], 0						; set the last byte of result buffser to null
+        mov 	rbx, 10             				; rbx = 10
+        xor 	rdi, rdi
+        cmp 	rax, 0
+        jge 	.loop_positive
+        neg 	rax
     .loop_negative:
-        xor edx, edx            ; edx = 0
-        div ebx                 ; ebx = divisor
-        add dl, '0'             ; dl - remainder
-        dec esi                 ; point to the next left byte 
-        mov [esi], dl           ; mov remainder to the current byte
-        inc edi
-        test eax, eax           ; if (eax == 0) ?
-        jnz .loop_negative      ; if not -> loop
-        mov dl, byte '-'        ; 
-        dec esi
-        mov [esi], dl           ; mov '-' to the current byte
-        jmp .done
-    .loop_positive:
-        xor edx, edx            ; edx = 0
-        div ebx                 ; ebx = divisor
-        add dl, '0'             ; dl - remainder
-        dec esi                 ; point to the next left byte 
-        mov [esi], dl           ; mov remainder to the current byte
-        inc edi
-        test eax, eax           ; if (eax == 0) ?
-        jnz .loop_positive      ; if not -> loop
-        jmp .done
-    .done:
-        mov eax, esi            ; else return result to eax
+        xor 	rdx, rdx            				; rdx = 0
+        div 	rbx                 				; rbx = divisor
+        add 	dl, '0'             				; dl - remainder
+        dec 	rsi                 				; point to the next left byte 
+        mov 	[rsi], dl           				; mov remainder to the current byte
+        inc 	rdi					
+        test	 rax, rax           				; if (rax == 0) ?
+        jnz 	.loop_negative      				; if not -> loop
+        movzx 	rdx, byte '-'        				; 
+        dec 	rsi					
+        mov 	[rsi], dl           				; mov '-' to the current byte
+        jmp 	.done					
+    .loop_positive:					
+        xor 	rdx, rdx            				; rdx = 0
+        div 	rbx                 				; rbx = divisor
+        add 	dl, '0'             				; dl - remainder
+        dec 	rsi                 				; point to the next left byte 
+        mov 	[rsi], dl           				; mov remainder to the current byte
+        inc 	rdi					
+        test	 rax, rax           				; if (rax == 0) ?
+        jnz 	.loop_positive      				; if not -> loop
+        jmp 	.done					
+    .done:					
+        mov 	rax, rsi            				; else return result to rax
         ret 
         
     failed_read_header:
-        mov ecx, error_readFileHeader_msg
-        mov edx, error_readFileHeader_msg_len
-        call print
+        mov 	rsi, error_readFileHeader_msg
+        mov 	rdi, error_readFileHeader_msg_len
+        call 	print
         ret
 
-    ;; Input: eax - number to convert
-    ;;        edi - pointer to buffer
+    ;; Input: rax - number to convert
+    ;;        rdi - pointer to buffer
     ;; Output: hex number in buffer
 	Dec2Hex:
-        mov ecx, 8
+        mov rcx, 8
     @digit_loop:
-        rol eax, 4
-        mov edx, eax
-        and edx, 0Fh
-        movzx edx, byte [lpHexString + edx]
-        mov [edi], dl
-        inc edi
+        rol rax, 4
+        mov rdx, rax
+        and rdx, 0Fh
+        movzx rdx, byte [lpHexString + rdx]
+        mov [rdi], dl
+        inc rdi
 
-        dec ecx
+        dec rcx
         jnz @digit_loop
-        mov byte [edi], 0h
+        mov byte [rdi], 0h
         ret
 
-    ;; Input: eax - value to print in hex
-    ;;        edi - pointer to string
-    ;;        ecx - number of bytes to print
+    ;; Input: rax - value to print in hex
+    ;;        rdi - pointer to string
+    ;;        rcx - number of bytes to print
     ;; Output: StdOut
     print_string:
-        push ecx
+        push rcx
         call Dec2Hex
-        pop ecx
-        lea edi, [tmp_string]
-        add ecx, ecx
-        mov eax, 8
-        sub eax, ecx
-        add edi, eax
-        lea esi, [string_buf]
+        pop rcx
+        lea rdi, [tmp_string]
+        add rcx, rcx
+        mov rax, 8
+        sub rax, rcx
+        add rdi, rax
+        lea rsi, [string_buf]
         Li:
-            mov ah, byte [edi]
-            mov byte [esi], ah
-            cmp ecx, 1h
+            mov ah, byte [rdi]
+            mov byte [rsi], ah
+            cmp rcx, 1h
             je @done
-            inc edi
-            inc esi
-            dec ecx
+            inc rdi
+            inc rsi
+            dec rcx
             jmp Li
         @done:
-            inc esi
-            mov byte [esi], 0h
-            mov ecx, string_buf
-            mov edx, 8
-            call print
+            inc rsi
+            mov byte [rsi], 0h
+			
+            mov 	rsi, string_buf
+            mov 	rdi, 8
+            call 	print
             ret
 
     ;; print name in Section Header
     ;; Input: ecx - offset in file
     print_name_in_Section_Header:
-        mov ebx, [handle]
-        mov edx, 0
-        mov eax, 19
-        int 80h
-
+		mov 	rax, 8								;syscall lseek
+		mov 	rdi, [hFile]						;fd
+		mov 	rsi, rcx							;offset
+		xor		rdx, rdx							;whence: SEEK_SET
+		syscall
+		
         loop_print_name:
-
-            mov eax, 3
-            mov ebx, eax
-            mov ecx, singleByte
-            mov edx, 1
-            int 80h
-
+			mov 	rax, 0
+			mov		rdi, 3
+			mov		rsi, singleByte
+			mov		rdx, 1
+			syscall
+			
             cmp byte [singleByte], 0h
             je .done
 
@@ -492,8 +500,8 @@ section .text
             inc edi
             mov byte [edi], 0h
             
-            mov ecx, tmp_string
-            mov edx, 1
+            mov 	rsi, tmp_string
+            mov 	rdx, 1
             call print 
             jmp loop_print_name
         .done:
@@ -504,16 +512,16 @@ _start:
     ; mov ecx, fileName_msg
     ; mov edx, fileName_msg_len
     ; call print
-    mov ebx, fileName           ; open file to read
-    mov eax, 5
-    mov ecx, 0
-    int 80h
-    mov [handle], eax
+	mov 	rax, 2
+    mov 	rdi, fileName           ;file name
+    mov 	rsi, 0					;flags
+    syscall
+    mov 	[hFile], rax
 
-    mov eax, 3                  ; read from file and store into buffer
-    mov ebx, eax
-    mov ecx, buffer
-    mov edx, 4
+    mov	 	rax, 0                  	;read from file and store into buffer
+    mov 	rdi, [hFile]
+    mov 	rsi, buffer
+    mov 	rdx, 4
     int 80h
 
     cmp dword [buffer], 0x464c457f  ; check if ELF or not
@@ -956,7 +964,7 @@ _start:
     mov [NameSection_virtOffset], eax
     
 ;   point to Name Section
-    mov ebx, [handle]
+    mov ebx, [hFile]
     mov ecx, dword [NameSection_virtOffset]
     mov edx, 0
     mov eax, 19
@@ -1005,7 +1013,7 @@ _start:
     mov edx, name_msg_len
     call print
 
-    mov ebx, [handle]
+    mov ebx, [hFile]
     mov ecx, dword [cur_offset]
     mov edx, 0
     mov eax, 19
@@ -1032,7 +1040,7 @@ _start:
             call newline
     ; point to Section Header 
 
-    mov ebx, [handle]
+    mov ebx, [hFile]
     mov ecx, dword [cur_offset]
     add ecx, 4
     mov edx, 0
@@ -1265,7 +1273,7 @@ _start:
 
    ; point to Program Header 
 
-    mov ebx, [handle]
+    mov ebx, [hFile]
     movzx ecx, word [cur_offset]
     mov edx, 0
     mov eax, 19
