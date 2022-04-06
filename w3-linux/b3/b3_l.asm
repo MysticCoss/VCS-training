@@ -38,7 +38,7 @@ global _start
 _start:
     push    rbp 			
     mov     rbp, rsp		
-	sub		rsp, 64							;Allocate 64 bytes in stack
+	sub		rsp, 64								;Allocate 64 bytes in stack
 	;Kernel mode x64 calling convention : syscall number RAX, Param: left->right RDI, RSI, RDX, R10, R8 and R9
 	;Local variable:
 	;offset -56  : QWORD option
