@@ -7,6 +7,7 @@ segment .data
 	message				dw __utf16__('Window Registration Failed!'),0
 	message1			dw __utf16__('Window Creation Failed!'),0
 	errormsg			dw __utf16__('Error!'),0
+
 segment .bss
 	leftrightdirection 	resd 1
 	topbottomdirection  resd 1
@@ -67,7 +68,7 @@ segment .text
 	extern HeapReAlloc
 	extern HeapFree
 	extern GetProcessHeap
-	extern lstrlenA
+
 	extern LoadIconW
 	extern LoadCursorW
 	extern CreateSolidBrush
@@ -106,11 +107,26 @@ WndProc: ;HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
 
 	push	rbp
 	mov 	rbp, rsp
+	;local variable:
+	;offset -120: HGDIOBJ oldhbm
+	;offset -112: HDC hdc
+	;offset -104: PAINTSTRUCT ps
+	;offset -32 : LPARAM lParam
+	;offset -24 : WPARAM wParam
+	;offset -16 : UINT msg
+	;offset -8  : HWND hwnd
+	sub		rsp, 256
 	
-	mov     [rsp+32], r9
-	mov     [rsp+24], r8
-	mov     [rsp+16], edx
-	mov     [rsp+8], rcx
+	mov     [rbp-32], r9
+	mov     [rbp-24], r8
+	mov     [rbp-16], edx
+	mov     [rbp-8], rcx
+	
+	push	r15
+	push	r14
+	push	r13
+	push	r12
+	push	rbx
 	
 	cmp		edx, 0xF
 	jz		.WM_PAINT
@@ -123,36 +139,35 @@ WndProc: ;HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
 	jmp		.DEFAULT
 	
 .WM_PAINT:
-	sub		rsp, 256
 	
 	;local variable
-	;offset -96: HGDIOBJ oldhbm
-	;offset -80 : HDC hdc
-	;offset -72 : PAINTSTRUCT ps
+	;offset -120: HGDIOBJ oldhbm
+	;offset -112 : HDC hdc
+	;offset -72 : 
 	
 	;GetClientRect(hwnd, &ps.rcPaint) 
-	mov		rcx, [rsp+8]
-	lea		rdx, [rbp-72+PAINTSTRUCT.rcPaint]
+	mov		rcx, [rbp-8]
+	lea		rdx, [rbp-104+PAINTSTRUCT.rcPaint]
 	sub		rsp, 32
 	call	GetClientRect
 	add		rsp, 32
 	
 	;ps.fErase = true
-	mov		dword [rbp-72+PAINTSTRUCT.fErase], 1
+	mov		dword [rbp-104+PAINTSTRUCT.fErase], 1
 	
 	;HDC hdc = BeginPaint(hwnd, &ps)
-	mov 	rcx, [rsp+8]					;hwnd
-	lea		rdx, [rbp-72]					;&ps
+	mov 	rcx, [rbp-8]					;hwnd
+	lea		rdx, [rbp-104]					;&ps
 	sub		rsp, 32
 	call	BeginPaint
 	add		rsp, 32
-	mov		[rbp-80], rax
+	mov		[rbp-112], rax
 	
 	mov 	eax, [leftrightdirection]
 	imul	eax, [speed]
 	mov		ecx, [r+RECT.right]
 	add		ecx, eax
-	cmp 	ecx, [rbp-72+PAINTSTRUCT.rcPaint+RECT.right]
+	cmp 	ecx, [rbp-104+PAINTSTRUCT.rcPaint+RECT.right]
 	jle		.donecheckright
 	mov		eax, [leftrightdirection]
 	neg		eax
@@ -172,7 +187,7 @@ WndProc: ;HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
 	imul	eax, [speed]
 	mov		ecx, [r+RECT.bottom]
 	add		ecx, eax
-	cmp 	ecx, [rbp-72+PAINTSTRUCT.rcPaint+RECT.bottom]
+	cmp 	ecx, [rbp-104+PAINTSTRUCT.rcPaint+RECT.bottom]
 	jle		.donecheckbotom
 	mov		eax, [topbottomdirection]
 	neg		eax
@@ -210,7 +225,7 @@ WndProc: ;HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
 	
 	;Implement double buffering to prevent screen flickering
 	;HDC memhdc[r15] = CreateCompatibleDC(hdc)
-	mov 	rcx, [rbp-80]		;hdc
+	mov 	rcx, [rbp-112]		;hdc
 	mov		rbx, rcx
 	sub		rsp, 32
 	call	CreateCompatibleDC
@@ -218,11 +233,11 @@ WndProc: ;HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
 	mov		r15, rax
 	
 	;HBITMAP memhbm = CreateCompatibleBitmap(hdc, rct.right - rct.left, rct.bottom - rct.top)
-	mov		r8d, [rbp-72+PAINTSTRUCT.rcPaint+RECT.bottom]
-	mov		eax, [rbp-72+PAINTSTRUCT.rcPaint+RECT.top]
+	mov		r8d, [rbp-104+PAINTSTRUCT.rcPaint+RECT.bottom]
+	mov		eax, [rbp-104+PAINTSTRUCT.rcPaint+RECT.top]
 	sub 	r8d, eax			;rct.bottom - rct.top
-	mov		edx, [rbp-72+PAINTSTRUCT.rcPaint+RECT.right]
-	mov		eax, [rbp-72+PAINTSTRUCT.rcPaint+RECT.left]
+	mov		edx, [rbp-104+PAINTSTRUCT.rcPaint+RECT.right]
+	mov		eax, [rbp-104+PAINTSTRUCT.rcPaint+RECT.left]
 	sub 	edx, eax			;rct.right - rct.left
 	mov		rcx, rbx			;hdc
 	sub		rsp, 32
@@ -247,7 +262,7 @@ WndProc: ;HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
 	
 	;FillRect(memhdc, &rct, newbrush)
 	mov		r8, r13								;newbrush
-	lea 	rdx, [rbp-72+PAINTSTRUCT.rcPaint]	;ps.rcPaint
+	lea 	rdx, [rbp-104+PAINTSTRUCT.rcPaint]	;ps.rcPaint
 	mov		rcx, r15							;memhdc
 	sub		rsp, 32
 	call	FillRect
@@ -319,13 +334,13 @@ WndProc: ;HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
 	push	0								;int y1 = 0
 	push	0								;int x1 = 0
 	push	r15								;hdcSrc = memhdc
-	mov		ecx, [rbp-72+PAINTSTRUCT.rcPaint+RECT.bottom]
-	sub		ecx, dword [rbp-72+PAINTSTRUCT.rcPaint+RECT.top]
+	mov		ecx, [rbp-104+PAINTSTRUCT.rcPaint+RECT.bottom]
+	sub		ecx, dword [rbp-104+PAINTSTRUCT.rcPaint+RECT.top]
 	push	rcx
-	mov		r9d, [rbp-72+PAINTSTRUCT.rcPaint+RECT.right]
-	sub		r9d, dword [rbp-72+PAINTSTRUCT.rcPaint+RECT.left]	
-	mov		r8d, [rbp-72+PAINTSTRUCT.rcPaint+RECT.top]
-	mov		edx, [rbp-72+PAINTSTRUCT.rcPaint+RECT.left]
+	mov		r9d, [rbp-104+PAINTSTRUCT.rcPaint+RECT.right]
+	sub		r9d, dword [rbp-104+PAINTSTRUCT.rcPaint+RECT.left]	
+	mov		r8d, [rbp-104+PAINTSTRUCT.rcPaint+RECT.top]
+	mov		edx, [rbp-104+PAINTSTRUCT.rcPaint+RECT.left]
 	mov		rcx, rbx						;hdc
 	sub		rsp, 32
 	call	BitBlt
@@ -384,8 +399,8 @@ WndProc: ;HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
 	add		rsp, 32
 	
 	;EndPaint(hwnd, &ps)
-	lea		rdx, [rbp-72]			;ps
-	mov		rcx, [rbp+8]			;hwnd
+	lea		rdx, [rbp-104]			;ps
+	mov		rcx, [rbp-8]			;hwnd
 	mov		rbx, rcx
 	sub		rsp, 32
 	call	EndPaint
@@ -412,7 +427,7 @@ WndProc: ;HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
 	jmp		.return
 
 .WM_CLOSE:
-	mov		rcx, [rbp+8]
+	mov		rcx, [rbp-8]
 	sub		rsp, 32
 	call	DestroyWindow
 	add		rsp, 32
@@ -428,19 +443,25 @@ WndProc: ;HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
 	jmp		.return	
 
 .DEFAULT:
-	mov     r9, [rsp+32]
-	mov     r8, [rsp+24]
-	mov     edx, [rsp+16]
-	mov     rcx, [rsp+8]
-	sub		rsp, 32
+	mov     r9, [rbp-32]
+	mov     r8, [rbp-24]
+	mov     edx, [rbp-16]
+	mov     rcx, [rbp-8]
+	sub		rsp, 128
 	call	DefWindowProcW
-	add		rsp, 32
+	add		rsp, 128
 	jmp		.return	
 	
 	
 .return:
+	pop		rbx
+	pop		r12
+	pop		r13
+	pop		r14
+	pop		r15
 	leave
 	ret
+	
 
 Start: 	;(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 		;				rcx					rdx					r8				r9
@@ -461,10 +482,6 @@ Start: 	;(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCm
     ;offset -24	 :
     ;offset -16  :
     ;offset -8   :
-	;offset +8	 :HINSTANCE hInstance
-	;offset +16  :HINSTANCE hPrevInstance
-	;offset +24	 :LPSTR lpCmdLine
-	;offset +32  :int nCmdShow	
 	
 	;Initalize global variable
 	mov		qword [leftrightdirection], 1
@@ -479,6 +496,7 @@ Start: 	;(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCm
 	mov		[r+RECT.right], eax
 	mov		[r+RECT.bottom], eax
 	
+	;hInstance = GetModuleHandleW(NULL)
 	xor		rcx, rcx
 	sub		rsp, 32
 	call	GetModuleHandleW
@@ -535,7 +553,9 @@ Start: 	;(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCm
 	add		rsp, 32
 	
 	;if (!RegisterClassExW(&wc))
-	movzx   eax, ax
+	movzx   rax, ax
+	mov		r14, rax
+	
 	test	rax, rax
 	jnz		L1
 			
@@ -563,15 +583,15 @@ L1:
 	push	0 							;hWndParent
 	push	387							;nHeight
 	push	700							;nWidth
-	push	0x		 			;Y
-	push	1		 			;X
-	mov     r9d, 0;0x00C80000;0x00CA0000   			;dwStyle: WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX;
-	mov     r8,  windowtitle		  		;"This is a title"
+	push	0x80000000		 			;Y
+	push	0x80000000		 			;X
+	mov     r9d, 0CA0000h;0x00C80000;0x00CA0000   			;dwStyle: WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX;
+	mov     r8, windowtitle		  		;"This is a title"
 	mov     rdx, g_szClassName 			;lpClassName
 	xor     rcx, rcx        			;dwExStyle
 	sub		rsp, 32
 	call    CreateWindowExW
-	add 	rsp, 88
+	add 	rsp, 96
 	mov 	r15, rax
 	
 	;if (hwnd == NULL)
@@ -633,3 +653,4 @@ GetMsgLoop:
 return:
 	mov		rsp, rbp
 	call    ExitProcess
+	
