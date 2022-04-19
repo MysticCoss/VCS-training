@@ -3,7 +3,7 @@ default rel
 
 segment .data
 	g_szClassName 		dw __utf16__('myWindowClass'), 0
-	windowtitle			dw __utf16__('This is a title'), 0
+	windowtitle			dw __utf16__('Bao xinh bôn'), 0
 	message				dw __utf16__('Window Registration Failed!'),0
 	message1			dw __utf16__('Window Creation Failed!'),0
 	errormsg			dw __utf16__('Error!'),0
@@ -107,6 +107,7 @@ WndProc: ;HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
 
 	push	rbp
 	mov 	rbp, rsp
+	
 	;local variable:
 	;offset -120: HGDIOBJ oldhbm
 	;offset -112: HDC hdc
@@ -139,11 +140,6 @@ WndProc: ;HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
 	jmp		.DEFAULT
 	
 .WM_PAINT:
-	
-	;local variable
-	;offset -120: HGDIOBJ oldhbm
-	;offset -112 : HDC hdc
-	;offset -72 : 
 	
 	;GetClientRect(hwnd, &ps.rcPaint) 
 	mov		rcx, [rbp-8]
@@ -226,7 +222,6 @@ WndProc: ;HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
 	;Implement double buffering to prevent screen flickering
 	;HDC memhdc[r15] = CreateCompatibleDC(hdc)
 	mov 	rcx, [rbp-112]		;hdc
-	mov		rbx, rcx
 	sub		rsp, 32
 	call	CreateCompatibleDC
 	add		rsp, 32
@@ -239,7 +234,7 @@ WndProc: ;HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
 	mov		edx, [rbp-104+PAINTSTRUCT.rcPaint+RECT.right]
 	mov		eax, [rbp-104+PAINTSTRUCT.rcPaint+RECT.left]
 	sub 	edx, eax			;rct.right - rct.left
-	mov		rcx, rbx			;hdc
+	mov		rcx, [rbp-112]			;hdc
 	sub		rsp, 32
 	call	CreateCompatibleBitmap
 	add		rsp, 32
@@ -341,7 +336,7 @@ WndProc: ;HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
 	sub		r9d, dword [rbp-104+PAINTSTRUCT.rcPaint+RECT.left]	
 	mov		r8d, [rbp-104+PAINTSTRUCT.rcPaint+RECT.top]
 	mov		edx, [rbp-104+PAINTSTRUCT.rcPaint+RECT.left]
-	mov		rcx, rbx						;hdc
+	mov		rcx, [rbp-112]						;hdc
 	sub		rsp, 32
 	call	BitBlt
 	add		rsp, 72
@@ -406,7 +401,7 @@ WndProc: ;HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
 	call	EndPaint
 	add		rsp, 32
 	
-	mov		ecx, 8
+	mov		ecx, 10
 	sub		rsp, 32
 	call	Sleep
 	add		rsp, 32
@@ -447,9 +442,9 @@ WndProc: ;HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
 	mov     r8, [rbp-24]
 	mov     edx, [rbp-16]
 	mov     rcx, [rbp-8]
-	sub		rsp, 128
+	sub		rsp, 40
 	call	DefWindowProcW
-	add		rsp, 128
+	add		rsp, 40
 	jmp		.return	
 	
 	
@@ -484,10 +479,10 @@ Start: 	;(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCm
     ;offset -8   :
 	
 	;Initalize global variable
-	mov		qword [leftrightdirection], 1
-	mov		qword [topbottomdirection], 1
-	mov 	qword [speed], 3
-	mov		qword [radius], 20
+	mov		dword [leftrightdirection], 1
+	mov		dword [topbottomdirection], 1
+	mov 	dword [speed], 3
+	mov		dword [radius], 20
 	
 	mov		dword [r+RECT.left], 0
 	mov		dword [r+RECT.top], 0
@@ -609,8 +604,8 @@ L1:
 	xor     eax, eax
 	jmp		return
 L2:
-	;ShowWindow(hwnd, nCmdShow)
-	mov		edx, 0
+	;ShowWindow(hwnd, 1)
+	mov		edx, 1
 	mov		rcx, r15
 	sub		rsp, 32
 	call	ShowWindow
