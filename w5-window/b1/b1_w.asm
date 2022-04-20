@@ -4,10 +4,10 @@ default rel
 segment .data
 	g_szClassName 		dw __utf16__('myWindowClass'), 0
 	windowtitle			dw __utf16__('Bao xinh bôn'), 0
-	message				dw __utf16__('Window Registration Failed!'),0
-	message1			dw __utf16__('Window Creation Failed!'),0
-	errormsg			dw __utf16__('Error!'),0
-
+	message				dw __utf16__('Window Registration Failed!'), 0
+	message1			dw __utf16__('Window Creation Failed!'), 0
+	errormsg			dw __utf16__('Error!'), 0
+	iconname			dw __utf16__('bb.ico'), 0
 segment .bss
 	leftrightdirection 	resd 1
 	topbottomdirection  resd 1
@@ -68,8 +68,7 @@ segment .text
 	extern HeapReAlloc
 	extern HeapFree
 	extern GetProcessHeap
-
-	extern LoadIconW
+	extern LoadImageW
 	extern LoadCursorW
 	extern CreateSolidBrush
 	extern RegisterClassExW
@@ -511,12 +510,20 @@ Start: 	;(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCm
 	mov		rax, [rbp-56]							;HINSTANCE hInstance
 	mov		[ws+WNDCLASSEXW.hInstance], rax
 	
-	xor		rcx, rcx
-	mov 	edx, 0x7F00
+	;hIcon = (HICON)LoadImageW(NULL, L"bb.ico", IMAGE_ICON, 0, 0, LR_LOADFROMFILE | LR_DEFAULTSIZE | LR_SHARED)
+	mov		rax, 8050								
+	push	rax										;LR_LOADFROMFILE | LR_DEFAULTSIZE | LR_SHARED
+	push	0										;int cy: 0
+	xor		r9, r9									;int cx: 0
+	mov		r8, 1									;UINT type: IMAGE_ICON
+	mov		rdx, iconname							;L"bb.ico"
+	xor		rcx, rcx								;hInstance: NULL
 	sub		rsp, 32
-	call	LoadIconW
-	add		rsp, 32
+	call	LoadImageW
+	add		rsp, 48
+	
 	mov		qword [ws+WNDCLASSEXW.hIcon], rax
+	push	rax
 	
 	xor		rcx, rcx
 	mov 	edx, 0x7F00
@@ -535,11 +542,7 @@ Start: 	;(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCm
 	mov		qword [ws+WNDCLASSEXW.lpszMenuName], 0
 	mov		qword [ws+WNDCLASSEXW.lpszClassName], g_szClassName
 	
-	xor		rcx, rcx
-	mov 	edx, 0x7F00
-	sub		rsp, 32
-	call	LoadIconW
-	add		rsp, 32
+	pop		rax
 	mov		qword [ws+WNDCLASSEXW.hIconSm], rax  
 
 	lea		rcx, [ws]
