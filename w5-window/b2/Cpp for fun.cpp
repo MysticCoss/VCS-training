@@ -27,7 +27,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		{
 		hWndEditBoxSrc = CreateWindowEx(WS_EX_WINDOWEDGE, L"EDIT", NULL,
 			WS_VISIBLE | WS_CHILD | WS_BORDER | ES_LEFT| ES_AUTOHSCROLL,
-			87, 81, 150, 25,
+			10, 5, 665, 25,
 			hwnd,
 			(HMENU)5, NULL, NULL);
 
@@ -41,7 +41,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		WPA = SetWindowLongPtr(hWndEditBoxSrc, GWLP_WNDPROC, (LONG_PTR)EditBoxProc);
 		hWndEditBoxDst = CreateWindowEx(WS_EX_WINDOWEDGE, L"EDIT", NULL,
 			WS_VISIBLE | WS_CHILD | WS_BORDER | ES_LEFT | ES_AUTOHSCROLL | ES_READONLY,
-			87, 120, 150, 25,
+			10, 35, 665, 25,
 			hwnd,
 			(HMENU)5, NULL, NULL);
 		SendMessage(hWndEditBoxDst, WM_SETFONT, (WPARAM)hFont, TRUE);
@@ -74,7 +74,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
 	auto hIcon = (HICON)LoadImage( // returns a HANDLE so we have to cast to HICON
 		NULL,             // hInstance must be NULL when loading from a file
-		L"bb.ico",   // the icon file name
+		L"Awake.ico",   // the icon file name
 		IMAGE_ICON,       // specifies that the file is an icon
 		0,                // width of the image (we'll specify default later on)
 		0,                // height of the image
@@ -112,7 +112,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 		g_szClassName,
 		L"Reverse text",
 		(WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX),
-		CW_USEDEFAULT, CW_USEDEFAULT, 700, 387,
+		CW_USEDEFAULT, CW_USEDEFAULT, 700, 105,
 		NULL, NULL, hInstance, NULL);
 
 	if (hwnd == NULL)
@@ -133,37 +133,36 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 			TranslateMessage(&Msg);
 			DispatchMessage(&Msg);
 		}
-		else
+		
+		if(hWndEditBoxSrc!=NULL && hWndEditBoxDst!=NULL)
 		{
-			if(hWndEditBoxSrc!=NULL && hWndEditBoxDst!=NULL)
+			if (SendMessage(hWndEditBoxSrc, EM_GETMODIFY, 0, 0))
 			{
-				if (SendMessage(hWndEditBoxSrc, EM_GETMODIFY, 0, 0))
-				{
-					int msglength = SendMessage(hWndEditBoxSrc, WM_GETTEXTLENGTH, 0, 0);
-					auto text = HeapAlloc(hHeap, HEAP_ZERO_MEMORY, (++msglength) * 2);
+				int msglength = SendMessage(hWndEditBoxSrc, WM_GETTEXTLENGTH, 0, 0);
+				auto text = HeapAlloc(hHeap, HEAP_ZERO_MEMORY, (++msglength) * 2);
 
-					SendMessage(hWndEditBoxSrc, WM_GETTEXT, msglength, (LPARAM)text);
-					int realmsglength = 0;
-					while(*((LPWSTR)text + realmsglength)!=L'\0')
-					{
-						realmsglength++;
-					}
-					int j = realmsglength-1;
-					int i = 0;
-					while (i <= j)
-					{
-						WCHAR temp = *((LPWSTR)text + i);
-						*((LPWSTR)text + i) = *((LPWSTR)text + j);
-						*((LPWSTR)text + j) = temp;
-						i++;
-						j--;
-					}
-					SendMessage(hWndEditBoxDst, WM_SETTEXT, 0, (LPARAM)text);
-					SendMessage(hWndEditBoxSrc, EM_SETMODIFY, 0, 0);
-					HeapFree(hHeap, 0, text);
+				SendMessage(hWndEditBoxSrc, WM_GETTEXT, msglength, (LPARAM)text);
+				int realmsglength = 0;
+				while(*((LPWSTR)text + realmsglength)!=L'\0')
+				{
+					realmsglength++;
 				}
+				int j = realmsglength-1;
+				int i = 0;
+				while (i <= j)
+				{
+					WCHAR temp = *((LPWSTR)text + i);
+					*((LPWSTR)text + i) = *((LPWSTR)text + j);
+					*((LPWSTR)text + j) = temp;
+					i++;
+					j--;
+				}
+				SendMessage(hWndEditBoxDst, WM_SETTEXT, 0, (LPARAM)text);
+				SendMessage(hWndEditBoxSrc, EM_SETMODIFY, 0, 0);
+				HeapFree(hHeap, 0, text);
 			}
 		}
+		
 	}
 	return Msg.wParam;
 }
