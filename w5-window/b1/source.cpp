@@ -60,9 +60,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 		//draw on hdc on memory
 		auto newpen = CreatePen(PS_SOLID, 3, 0x00000000);
-		auto x1 = GetLastError();
-		auto newbrushh = CreateSolidBrush(0x002530D9);
-		auto x2 = GetLastError();
+		auto newbrushh = CreateSolidBrush(0x002530D9)
 		HGDIOBJ oldpen = SelectObject(memhdc, newpen);
 		HGDIOBJ oldbrush = SelectObject(memhdc, newbrushh);
 		Ellipse(memhdc, r.left, r.top, r.right, r.bottom);

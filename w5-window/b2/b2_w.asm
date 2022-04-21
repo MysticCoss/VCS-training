@@ -8,12 +8,16 @@ segment .data
 	message1			dw __utf16__('Window Creation Failed!'), 0
 	errormsg			dw __utf16__('Error!'), 0
 	iconname			dw __utf16__('Awake.ico'), 0
+	edit				dw __utf16__('EDIT'), 0
+	pszFaceName			dw __utf16__('Tahoma'), 0
 segment .bss
 	running				resq 1
 	hHeap 				resq 1
 	ws					resb 80
 	hWndEditBoxSrc		resq 1
 	hWndEditBoxDst		resq 1
+	hFont				resq 1
+	WPA					resq 1
 	
 	struc WNDCLASSEXW
 		.cbSize         : resd 1                    
@@ -95,9 +99,51 @@ segment .text
 	extern DispatchMessageW
 	extern GetModuleHandleW
 	extern GetLastError
-
+	extern SendMessageW
+	extern CallWindowProcW
+	extern CreateFontW
+	extern SetWindowLongPtrW
+	extern PeekMessageW
 global Start	
 
+EditBoxProc: ;HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
+             ;		rcx		  edx			r8				r9
+	push	rbp
+	mov		rbp, rsp
+	
+	sub		rsp, 256
+	
+	mov     [rbp-32], r9
+	mov     [rbp-24], r8
+	mov     [rbp-16], edx
+	mov     [rbp-8], rcx
+	
+	cmp		edx, 0x102
+	jne		.return
+	cmp		r8, 1
+	jne		.return
+	
+	mov     r9, 0FFFFFFFFFFFFFFFFh 	; lParam
+	xor     r8d, r8d        		; wParam
+	mov     edx, 0xB1				; Msg
+	mov     rcx, [rbp-8]		 	; hWnd
+	call    SendMessageW
+	mov     eax, 1
+	jmp		.end
+.return:
+	mov     rax, [rbp-32]
+	push 	rax 					; lParam
+	mov     r9, [rbp-24] 	; wParam
+	mov     r8d, [rbp-16] 	; Msg
+	mov     rdx, [rbp-8] 	; hWnd
+	mov     rcx, [WPA] 				; lpPrevWndFunc
+	call    CallWindowProcW
+	jmp		.end
+	
+.end:
+	leave
+	ret
+			 
 WndProc: ;HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
 		 ;		rcx		  edx			r8				r9
 
@@ -147,8 +193,89 @@ WndProc: ;HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
 	push	665
 	push	5
 	push	10
-	mov		r9d, 
+	mov		r9d, 0x50800080			;WS_VISIBLE | WS_CHILD | WS_BORDER | ES_LEFT| ES_AUTOHSCROLL
+	xor		r8, r8
+	mov		rdx, edit
+	mov		rcx, 0x100
+	sub		rsp, 32
 	call	CreateWindowExW
+	add		rsp, 96
+	mov		[hWndEditBoxSrc], rax
+	
+	mov		rax, [hFont]
+	test	rax, rax
+	
+	jnz		.L1
+	
+	
+	;hFont = CreateFont(0, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE, ANSI_CHARSET,
+	;	OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
+	;	DEFAULT_PITCH | FF_DONTCARE, TEXT("Tahoma"))
+	mov     rax, pszFaceName 		; L"Tahoma"
+	push	rax 					; pszFaceName
+	push	0 						; iPitchAndFamily
+	push	0 						; iQuality
+	push	0 						; iClipPrecision
+	push	4 						; iOutPrecision
+	push	0 						; iCharSet
+	push	0 						; bStrikeOut
+	push	0 						; bUnderline
+	push	0 						; bItalic
+	push	0 						; cWeight
+	xor     r9d, r9d        		; cOrientation
+	xor     r8d, r8d        		; cEscapement
+	xor     edx, edx        		; cWidth
+	xor     ecx, ecx        		; cHeight
+	sub		rsp, 32
+	call    CreateFontW
+	add		rsp, 112
+	
+	mov		[hFont], rax
+.L1:
+		
+	;SendMessage(hWndEditBoxSrc, WM_SETFONT, (WPARAM)hFont, TRUE)
+	mov     r9d, 1
+	mov     r8, [hFont]				; wParam
+	mov     edx, 0x30 				; WM_SETFONT
+	mov     rcx, [hWndEditBoxSrc]	
+	sub		rsp, 32
+	call    SendMessageW
+	add		rsp, 32
+	
+	;WPA = SetWindowLongPtr(hWndEditBoxSrc, GWLP_WNDPROC, (LONG_PTR)EditBoxProc)
+	mov     r8, EditBoxProc			; dwNewLong
+	mov     edx, 0FFFFFFFCh 		; GWLP_WNDPROC
+	mov     rcx, hWndEditBoxSrc		
+	call    SetWindowLongPtrW
+	mov     [WPA], rax 				;WPA
+	
+	;hWndEditBoxDst = CreateWindowEx(WS_EX_WINDOWEDGE, L"EDIT", NULL,
+	;	WS_VISIBLE | WS_CHILD | WS_BORDER | ES_LEFT | ES_AUTOHSCROLL | ES_READONLY,
+	;	10, 35, 665, 25,
+	;	hwnd,
+	;	(HMENU)5, NULL, NULL)
+	
+	push	0 						; lpParam
+	push	0 						; hInstance
+	push	5 						; hMenu
+	mov     rax, [rbp-8]			; hWndParent: hwnd
+	push	rax
+	push 	0x19 					; nHeight
+	push	0x299 					; nWidth
+	push	0x23					; Y
+	push	0x0A					; X
+	mov     r9d, 0x50800880  		; dwStyle
+	xor     r8d, r8d        		; lpWindowName
+	mov     rdx, edit  				; "EDIT"
+	mov     ecx, 0x100       		; dwExStyle
+	call    CreateWindowExW
+	mov		[hWndEditBoxDst], rax
+	
+	mov     r9d, 1          		; lParam
+	mov     r8, [hFont] 			; wParam
+	mov     edx, 0x30 				; Msg
+	mov     rcx, [hWndEditBoxDst] 	; hWnd
+	call    SendMessageW
 	
 	xor		rax, rax
 	jmp		.return
@@ -215,7 +342,7 @@ Start: 	;(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCm
 	mov		qword [running], 1
 	mov		qword [hWndEditBoxDst], 0
 	mov		qword [hWndEditBoxSrc], 0
-	
+	mov		qword [hFont], 0
 	;hInstance = GetModuleHandleW(NULL)
 	xor		rcx, rcx
 	sub		rsp, 32
@@ -382,9 +509,9 @@ GetMsgLoop:
 	mov		rcx, [hWndEditBoxDst] 
 	mov		rdx, [hWndEditBoxSrc]
 	test	rcx, rcx
-	jz		.GetMsgLoop
+	jz		GetMsgLoop
 	test	rdx, rdx
-	jz		.GetMsgLoop
+	jz		GetMsgLoop
 	
 	;if (SendMessageW(hWndEditBoxSrc, EM_GETMODIFY, 0, 0))
 	xor		r9, r9
@@ -428,14 +555,14 @@ GetMsgLoop:
 	add		rax, r15
 	movzx	rax, word[rax]
 	test 	rax, rax
-	jnz		EndL1
+	jnz		.EndL1
 	dec		r15
 	jmp		.L1
 	
 	
 .EndL1:
 	xor		r13, r13
-.L2
+.L2:	
 	;while (i <= j)
 	
 	cmp		r13, r15

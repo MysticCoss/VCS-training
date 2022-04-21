@@ -32,6 +32,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 				OUT_TT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
 				DEFAULT_PITCH | FF_DONTCARE, TEXT("Tahoma"));
 		}
+		
 		SendMessage(hWndEditBoxSrc, WM_SETFONT, (WPARAM)hFont, TRUE);
 		WPA = SetWindowLongPtr(hWndEditBoxSrc, GWLP_WNDPROC, (LONG_PTR)EditBoxProc);
 		hWndEditBoxDst = CreateWindowEx(WS_EX_WINDOWEDGE, L"EDIT", NULL,
