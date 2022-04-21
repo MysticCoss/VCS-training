@@ -9,14 +9,9 @@ segment .data
 	errormsg			dw __utf16__('Error!'), 0
 	iconname			dw __utf16__('Awake.ico'), 0
 segment .bss
-	leftrightdirection 	resd 1
-	topbottomdirection  resd 1
-	radius 				resd 1
-	speed				resd 1
 	running				resq 1
 	hHeap 				resq 1
 	ws					resb 80
-	r					resb 16
 	hWndEditBoxSrc		resq 1
 	hWndEditBoxDst		resq 1
 	
@@ -134,7 +129,30 @@ WndProc: ;HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
 	jz		.WM_CLOSE
 	cmp		edx, 0x2
 	jz		.WM_DESTROY
+	cmp		edx, 0x1
+	jz		.WM_CREATE
 	jmp		.DEFAULT
+.WM_CREATE:
+	;hWndEditBoxSrc = CreateWindowExW(WS_EX_WINDOWEDGE, L"EDIT", NULL,
+	;	WS_VISIBLE | WS_CHILD | WS_BORDER | ES_LEFT| ES_AUTOHSCROLL,
+	;	10, 5, 665, 25,
+	;	hwnd,
+	;	(HMENU)5, NULL, NULL)
+	push	0
+	push 	0
+	push	5
+	mov		rax, [rbp-8]
+	push	rax
+	push	25
+	push	665
+	push	5
+	push	10
+	mov		r9d, 
+	call	CreateWindowExW
+	
+	xor		rax, rax
+	jmp		.return
+
 
 .WM_CLOSE:
 	mov		rcx, [rbp-8]
@@ -194,20 +212,9 @@ Start: 	;(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCm
     ;offset -8   :
 	
 	;Initalize global variable
-	mov		dword [leftrightdirection], 1
-	mov		dword [topbottomdirection], 1
-	mov 	dword [speed], 3
-	mov		dword [radius], 20
 	mov		qword [running], 1
 	mov		qword [hWndEditBoxDst], 0
 	mov		qword [hWndEditBoxSrc], 0
-	
-	mov		dword [r+RECT.left], 0
-	mov		dword [r+RECT.top], 0
-	mov		eax, [radius]							;radius*2
-	shl		eax, 1
-	mov		[r+RECT.right], eax
-	mov		[r+RECT.bottom], eax
 	
 	;hInstance = GetModuleHandleW(NULL)
 	xor		rcx, rcx
@@ -369,22 +376,108 @@ GetMsgLoop:
 	sub		rsp, 32
 	call	DispatchMessageW
 	add		rsp, 32
-	jmp		GetMsgLoop
 	
 .peekzero:
+	;if(hWndEditBoxSrc!=NULL && hWndEditBoxDst!=NULL)
 	mov		rcx, [hWndEditBoxDst] 
 	mov		rdx, [hWndEditBoxSrc]
 	test	rcx, rcx
-	jz		.invalidhwnd
-	test	rcx, rcx
-	jz		.invalidhwnd
+	jz		.GetMsgLoop
+	test	rdx, rdx
+	jz		.GetMsgLoop
+	
+	;if (SendMessageW(hWndEditBoxSrc, EM_GETMODIFY, 0, 0))
+	xor		r9, r9
+	xor		r8, r8
+	mov		edx, 0x000000B8
+	mov		rcx, [hWndEditBoxSrc]
+	call	SendMessageW
+	
+	test	rax, rax
+	jz		GetMsgLoop
+	
+	;int msglength = SendMessageW(hWndEditBoxSrc, WM_GETTEXTLENGTH, 0, 0);
+	xor		r9, r9
+	xor		r8, r8
+	mov		edx, 0x0000000E
+	mov		rcx, [hWndEditBoxSrc]
+	call	SendMessageW
+	
+	;++msglength
+	mov		r15d, eax
+	inc		r15d
+	
+	;LPVOID text = HeapAlloc(hHeap, HEAP_ZERO_MEMORY, (++msglength) * 2);
+	mov		r8d, r15d
+	shl		r8d, 1
+	mov		edx, 8
+	mov		rcx, [hHeap]
+	call	HeapAlloc
+	
+	mov		r14, rax
+	
+	;SendMessageW(hWndEditBoxSrc, WM_GETTEXT, msglength, (LPARAM)text)
+	mov		r9, r14
+	mov		r8d, r15d
+	mov		edx, 0x0000000D
+	mov		rcx, [hWndEditBoxSrc]
+	call	SendMessageW
+
+.L1:
+	mov		rax, r14
+	add		rax, r15
+	movzx	rax, word[rax]
+	test 	rax, rax
+	jnz		EndL1
+	dec		r15
+	jmp		.L1
+	
+	
+.EndL1:
+	xor		r13, r13
+.L2
+	;while (i <= j)
+	
+	cmp		r13, r15
+	jg		.L2End
+	mov		rax, r14
+	add		rax, r13
+	mov		cx, word[rax]
+	
+	mov		rdx, r14
+	add		rdx, r15
+	mov		bx, word[rdx]
+	
+	mov		word[rax], bx
+	mov		word[rdx], cx
+	inc		r13
+	dec		r15
+	
+	jmp		.L2
+.L2End:
+	;SendMessageW(hWndEditBoxDst, WM_SETTEXT, 0, (LPARAM)text)
+	mov		r9, r14
+	xor		r8, r8
+	mov		edx, 0x0000000C
+	mov		rcx, [hWndEditBoxDst]
+	call	SendMessageW
+	
+	;SendMessageW(hWndEditBoxSrc, EM_SETMODIFY, 0, 0)
+	xor		r9, r9
+	xor		r8, r8
+	mov		edx, 0x000000B9
+	mov		rcx, [hWndEditBoxSrc]
+	call	SendMessageW
+	
+	mov		r8, r14
+	xor		rdx, rdx
+	mov		rcx, [hHeap]
+	call	HeapFree
 	
 	jmp		GetMsgLoop
-	
-.invalidhwnd:
 
 .endloop:
-	mov		rax, [rbx+MSG.wParam]
+	xor		rax, rax
 	
 return:
 	mov		rsp, rbp

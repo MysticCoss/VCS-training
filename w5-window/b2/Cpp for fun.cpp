@@ -1,12 +1,7 @@
 ﻿#include <Windows.h>
 const wchar_t g_szClassName[] = L"myWindowClass";
-int leftrightdirection = 1;
-int topbottomdirection = 1;
-int radius = 20;
-int speed = 3;
 bool running = true;
 HANDLE hHeap;
-RECT r = { 0,0,2 * radius, 2 * radius };
 HFONT hFont = NULL;
 LONG_PTR WPA = NULL;
 HWND hWndEditBoxSrc = NULL, hWndEditBoxDst = NULL;
@@ -124,7 +119,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
 	ShowWindow(hwnd, 1);
 	UpdateWindow(hwnd);
-	int z = sizeof(Msg);
 	// Step 3: The Message Loop
 	while (running)
 	{
@@ -136,10 +130,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 		
 		if(hWndEditBoxSrc!=NULL && hWndEditBoxDst!=NULL)
 		{
-			if (SendMessage(hWndEditBoxSrc, EM_GETMODIFY, 0, 0))
+			if (SendMessageW(hWndEditBoxSrc, EM_GETMODIFY, 0, 0))
 			{
 				int msglength = SendMessage(hWndEditBoxSrc, WM_GETTEXTLENGTH, 0, 0);
-				auto text = HeapAlloc(hHeap, HEAP_ZERO_MEMORY, (++msglength) * 2);
+				LPVOID text = HeapAlloc(hHeap, HEAP_ZERO_MEMORY, (++msglength) * 2);
 
 				SendMessage(hWndEditBoxSrc, WM_GETTEXT, msglength, (LPARAM)text);
 				int realmsglength = 0;
@@ -164,5 +158,5 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 		}
 		
 	}
-	return Msg.wParam;
+	return 0;
 }
