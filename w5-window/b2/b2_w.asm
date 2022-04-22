@@ -9,7 +9,7 @@ segment .data
 	errormsg			dw __utf16__('Error!'), 0
 	iconname			dw __utf16__('Awake.ico'), 0
 	edit				dw __utf16__('EDIT'), 0
-	pszFaceName			dw __utf16__('Tahoma'), 0
+	pszFaceName			dw __utf16__('Calibri'), 0
 segment .bss
 	running				resq 1
 	hHeap 				resq 1
@@ -123,7 +123,7 @@ EditBoxProc: ;HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
 	cmp		r8, 1
 	jne		.return
 	
-	mov     r9, 0FFFFFFFFFFFFFFFFh 	; lParam
+	mov     r9, -1				 	; lParam
 	xor     r8d, r8d        		; wParam
 	mov     edx, 0xB1				; Msg
 	mov     rcx, [rbp-8]		 	; hWnd
@@ -132,12 +132,15 @@ EditBoxProc: ;HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
 	jmp		.end
 .return:
 	mov     rax, [rbp-32]
+	sub		rsp, 8
 	push 	rax 					; lParam
 	mov     r9, [rbp-24] 	; wParam
 	mov     r8d, [rbp-16] 	; Msg
 	mov     rdx, [rbp-8] 	; hWnd
 	mov     rcx, [WPA] 				; lpPrevWndFunc
+	sub		rsp, 32
 	call    CallWindowProcW
+	add		rsp, 40
 	jmp		.end
 	
 .end:
@@ -151,9 +154,6 @@ WndProc: ;HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
 	mov 	rbp, rsp
 	
 	;local variable:
-	;offset -120: HGDIOBJ oldhbm
-	;offset -112: HDC hdc
-	;offset -104: PAINTSTRUCT ps
 	;offset -32 : LPARAM lParam
 	;offset -24 : WPARAM wParam
 	;offset -16 : UINT msg
@@ -171,6 +171,8 @@ WndProc: ;HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
 	push	r12
 	push	rbx
 	
+	cmp		edx, 0x102
+	jz		.WM_CHAR
 	cmp		edx, 0x10
 	jz		.WM_CLOSE
 	cmp		edx, 0x2
@@ -178,16 +180,20 @@ WndProc: ;HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
 	cmp		edx, 0x1
 	jz		.WM_CREATE
 	jmp		.DEFAULT
+.WM_CHAR:
+	mov		eax, 1
+	jmp		.return
 .WM_CREATE:
 	;hWndEditBoxSrc = CreateWindowExW(WS_EX_WINDOWEDGE, L"EDIT", NULL,
 	;	WS_VISIBLE | WS_CHILD | WS_BORDER | ES_LEFT| ES_AUTOHSCROLL,
 	;	10, 5, 665, 25,
 	;	hwnd,
 	;	(HMENU)5, NULL, NULL)
+	sub		rsp, 8
 	push	0
 	push 	0
 	push	5
-	mov		rax, [rbp-8]
+	mov		rax, [rbp-8]			;hwnd
 	push	rax
 	push	25
 	push	665
@@ -196,11 +202,13 @@ WndProc: ;HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
 	mov		r9d, 0x50800080			;WS_VISIBLE | WS_CHILD | WS_BORDER | ES_LEFT| ES_AUTOHSCROLL
 	xor		r8, r8
 	mov		rdx, edit
-	mov		rcx, 0x100
+	mov		rcx, 0x100				;WS_EX_WINDOWEDGE
 	sub		rsp, 32
 	call	CreateWindowExW
-	add		rsp, 96
+	add		rsp, 104
 	mov		[hWndEditBoxSrc], rax
+	
+	call	GetLastError
 	
 	mov		rax, [hFont]
 	test	rax, rax
@@ -234,19 +242,23 @@ WndProc: ;HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
 .L1:
 		
 	;SendMessage(hWndEditBoxSrc, WM_SETFONT, (WPARAM)hFont, TRUE)
+	sub		rsp, 8
 	mov     r9d, 1
 	mov     r8, [hFont]				; wParam
 	mov     edx, 0x30 				; WM_SETFONT
 	mov     rcx, [hWndEditBoxSrc]	
 	sub		rsp, 32
 	call    SendMessageW
-	add		rsp, 32
+	add		rsp, 40
 	
-	;WPA = SetWindowLongPtr(hWndEditBoxSrc, GWLP_WNDPROC, (LONG_PTR)EditBoxProc)
+	;WPA = SetWindowLongPtrW(hWndEditBoxSrc, GWLP_WNDPROC, (LONG_PTR)EditBoxProc)
+	sub		rsp, 8
 	mov     r8, EditBoxProc			; dwNewLong
-	mov     edx, 0FFFFFFFCh 		; GWLP_WNDPROC
-	mov     rcx, hWndEditBoxSrc		
+	mov     edx, -4 		; GWLP_WNDPROC
+	mov     rcx, [hWndEditBoxSrc]	
+	sub		rsp, 32
 	call    SetWindowLongPtrW
+	add		rsp, 40
 	mov     [WPA], rax 				;WPA
 	
 	;hWndEditBoxDst = CreateWindowEx(WS_EX_WINDOWEDGE, L"EDIT", NULL,
@@ -254,7 +266,7 @@ WndProc: ;HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
 	;	10, 35, 665, 25,
 	;	hwnd,
 	;	(HMENU)5, NULL, NULL)
-	
+	sub		rsp, 8
 	push	0 						; lpParam
 	push	0 						; hInstance
 	push	5 						; hMenu
@@ -268,14 +280,18 @@ WndProc: ;HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
 	xor     r8d, r8d        		; lpWindowName
 	mov     rdx, edit  				; "EDIT"
 	mov     ecx, 0x100       		; dwExStyle
+	sub		rsp, 32
 	call    CreateWindowExW
+	add		rsp, 104
 	mov		[hWndEditBoxDst], rax
 	
 	mov     r9d, 1          		; lParam
 	mov     r8, [hFont] 			; wParam
 	mov     edx, 0x30 				; Msg
 	mov     rcx, [hWndEditBoxDst] 	; hWnd
+	sub		rsp, 32
 	call    SendMessageW
+	add		rsp, 32
 	
 	xor		rax, rax
 	jmp		.return
@@ -294,6 +310,7 @@ WndProc: ;HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
 	sub		rsp, 32
 	call	PostQuitMessage
 	add		rsp, 32
+	mov		qword [running], 0
 	xor		rax, rax
 	jmp		.return	
 
@@ -488,7 +505,7 @@ GetMsgLoop:
 	mov		rbx, rcx
 	sub		rsp, 32
 	call	PeekMessageW
-	add		rsp, 32
+	add		rsp, 40
 	
 	test 	rax, rax
 	jz		.peekzero
@@ -518,7 +535,9 @@ GetMsgLoop:
 	xor		r8, r8
 	mov		edx, 0x000000B8
 	mov		rcx, [hWndEditBoxSrc]
+	sub		rsp, 32
 	call	SendMessageW
+	add		rsp, 32
 	
 	test	rax, rax
 	jz		GetMsgLoop
@@ -528,53 +547,55 @@ GetMsgLoop:
 	xor		r8, r8
 	mov		edx, 0x0000000E
 	mov		rcx, [hWndEditBoxSrc]
+	sub		rsp, 32
 	call	SendMessageW
-	
-	;++msglength
+	add		rsp, 32
 	mov		r15d, eax
-	inc		r15d
 	
-	;LPVOID text = HeapAlloc(hHeap, HEAP_ZERO_MEMORY, (++msglength) * 2);
+	;LPVOID text = HeapAlloc(hHeap, HEAP_ZERO_MEMORY, (msglength+1) * 2);
 	mov		r8d, r15d
+	inc		r8d
 	shl		r8d, 1
 	mov		edx, 8
 	mov		rcx, [hHeap]
+	sub		rsp, 32
 	call	HeapAlloc
+	add		rsp, 32
 	
 	mov		r14, rax
 	
-	;SendMessageW(hWndEditBoxSrc, WM_GETTEXT, msglength, (LPARAM)text)
+	;SendMessageW(hWndEditBoxSrc, WM_GETTEXT, msglength+1, (LPARAM)text)
 	mov		r9, r14
 	mov		r8d, r15d
+	inc		r8d
 	mov		edx, 0x0000000D
 	mov		rcx, [hWndEditBoxSrc]
+	sub		rsp, 32
 	call	SendMessageW
-
-.L1:
-	mov		rax, r14
-	add		rax, r15
-	movzx	rax, word[rax]
-	test 	rax, rax
-	jnz		.EndL1
-	dec		r15
-	jmp		.L1
+	add		rsp, 32
 	
-	
-.EndL1:
 	xor		r13, r13
+	dec		r15
 .L2:	
 	;while (i <= j)
+
 	
 	cmp		r13, r15
 	jg		.L2End
 	mov		rax, r14
-	add		rax, r13
+	mov		rcx, r13
+	shl		rcx, 1
+	add		rax, rcx
 	mov		cx, word[rax]
+
 	
 	mov		rdx, r14
-	add		rdx, r15
+	mov		r8, r15
+	shl		r8, 1
+	add		rdx, r8
 	mov		bx, word[rdx]
 	
+
 	mov		word[rax], bx
 	mov		word[rdx], cx
 	inc		r13
@@ -587,19 +608,25 @@ GetMsgLoop:
 	xor		r8, r8
 	mov		edx, 0x0000000C
 	mov		rcx, [hWndEditBoxDst]
+	sub		rsp, 32
 	call	SendMessageW
+	add		rsp, 32
 	
 	;SendMessageW(hWndEditBoxSrc, EM_SETMODIFY, 0, 0)
 	xor		r9, r9
 	xor		r8, r8
 	mov		edx, 0x000000B9
 	mov		rcx, [hWndEditBoxSrc]
+	sub		rsp, 32
 	call	SendMessageW
+	add		rsp, 32
 	
 	mov		r8, r14
 	xor		rdx, rdx
 	mov		rcx, [hHeap]
+	sub		rsp, 32
 	call	HeapFree
+	add		rsp, 32
 	
 	jmp		GetMsgLoop
 

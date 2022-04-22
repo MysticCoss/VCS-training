@@ -2,16 +2,15 @@ bits 64
 default rel
 
 segment .data
-	g_szClassName 		dw __utf16__('myWindowClass'), 0
-	windowtitle			dw __utf16__('Bao xinh bôn'), 0
-	message				dw __utf16__('Window Registration Failed!'), 0
-	message1			dw __utf16__('Window Creation Failed!'), 0
-	errormsg			dw __utf16__('Error!'), 0
-	iconname			dw __utf16__('bb.ico'), 0
+	chromeexe 		dw __utf16__('chrome.exe'), 0
+	edgeexe 		dw __utf16__('msedge.exe'), 0
+	firefoxexe 		dw __utf16__('firefox.exe'), 0
+	_Format			dw __utf16__('Round %d: %d application closed\n'), 0
 segment .bss
 	hHeap 				resq 1
 	hStdin				resq 1
 	hStdout				resq 1
+	closed				resq 1
 segment .text
 	extern ExitProcess
 	extern HeapAlloc
@@ -20,12 +19,18 @@ segment .text
 	extern GetProcessHeap     
 	extern Sleep          
 	extern GetLastError
-	extern wprintf 
-
+	extern GetStdHandle
+	extern EnumWindows
+	extern StrStrW
+	extern GetWindowThreadProcessId
+	extern OpenProcess
+	extern GetModuleFileNameExW
+	extern TerminateProcess
+	
 global Start	
 
-WndProc: ;HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
-		 ;		rcx		  edx			r8				r9
+EnumWindowsProc: ;HWND hwnd, LPARAM lParam
+				;		rcx		 	  rdx
 
 	push	rbp
 	mov 	rbp, rsp
@@ -37,7 +42,7 @@ WndProc: ;HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
 	;offset -32 : 
 	;offset -24 : 
 	;offset -16 : 
-	;offset -8  : 
+	;offset -8  : DWORD pid
 	sub		rsp, 256
 	
 	push	r15
@@ -46,14 +51,114 @@ WndProc: ;HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam
 	push	r12
 	push	rbx
 	
+	push	rcx
 	
+	;buff[r15] = HeapAlloc(hHeap,8,2000)	
+	mov 	rcx, [hHeap]							;hHeap
+	mov 	edx, 8									;HEAP_ZERO_MEMORY 0x00000008
+	mov 	r8d, 2000								;number of byte allocated
+	sub 	rsp, 32									;Shadow store
+	call	HeapAlloc
+	add		rsp, 32
+	mov		r15, rax
 	
+	;GetWindowThreadProcessId(hWnd, &pid)
+	pop		rcx
+	lea		rdx, [rbp-8]
+	sub 	rsp, 32									
+	call	GetWindowThreadProcessId
+	add		rsp, 32
+	
+	;HANDLE hProc[r14] = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ | PROCESS_TERMINATE, FALSE, pid)
+	mov     r8d, dword [rbp-8] 						;dwProcessId
+	xor     edx, edx        						;bInheritHandle
+	mov     ecx, 0x411       						;dwDesiredAccess: PROCESS_QUERY_INFORMATION | PROCESS_VM_READ | PROCESS_TERMINATE
+	sub		rsp, 32
+	call    OpenProcess
+	add		rsp, 32
+	mov		r14, rax
+	
+	call	GetLastError
+	
+	;if (GetModuleFileNameEx(hProc,NULL, (LPWSTR)buff, 1000) > 0)
+	push	r14
+	mov     r9d, 1000       						; nSize
+	mov     r8, r15 								; lpFilename
+	xor     edx, edx        						; hModule
+	mov     rcx, r14 								; hProcess
+	sub		rsp, 32
+	call    GetModuleFileNameExW
+	add		rsp, 40
+	
+	test	eax, eax
+	jbe		.return
+	
+	sub		rsp, 8
+	mov     rdx, chromeexe    						; "chrome.exe"
+	mov     rcx, r15 								; pszFirst
+	sub		rsp, 32
+	call    StrStrW
+	add		rsp, 40
+	test    rax, rax
+	jz      .L1
+	
+	sub		rsp, 8
+	mov     edx, 0FFFFFFFFh 						; uExitCode
+	mov     rcx, r14		 						; hProcess
+	sub		rsp, 32
+	call    TerminateProcess
+	add		rsp, 40
+	
+	add		qword [closed], 1
+	
+.L1:
+	sub		rsp, 8
+	mov     rdx, edgeexe    						; "msedge.exe"
+	mov     rcx, r15 								; pszFirst
+	sub		rsp, 32
+	call    StrStrW
+	add		rsp, 40
+	test    rax, rax
+	jz      .L2
+	
+	sub		rsp, 8
+	mov     edx, 0FFFFFFFFh 						; uExitCode
+	mov     rcx, r14		 						; hProcess
+	sub		rsp, 32
+	call    TerminateProcess
+	add		rsp, 40
+	
+	add		qword [closed], 1
+	
+.L2:
+	sub		rsp, 8
+	mov     rdx, firefoxexe    						; "firefox.exe"
+	mov     rcx, r15 								; pszFirst
+	sub		rsp, 32
+	call    StrStrW
+	add		rsp, 40
+	test    rax, rax
+	jz      .L3
+	
+	sub		rsp, 8
+	mov     edx, 0FFFFFFFFh 						; uExitCode
+	mov     rcx, r14		 						; hProcess
+	sub		rsp, 32
+	call    TerminateProcess
+	add		rsp, 40
+	
+	add		qword [closed], 1
+
+.L3:
+	jmp		.return
+
 .return:
 	pop		rbx
 	pop		r12
 	pop		r13
 	pop		r14
 	pop		r15
+	mov		rax, 1
 	leave
 	ret
 	
@@ -78,178 +183,42 @@ Start: 	;(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCm
     ;offset -16  :
     ;offset -8   :
 	
-	;Initalize global variable
-	mov		dword [leftrightdirection], 1
-	mov		dword [topbottomdirection], 1
-	mov 	dword [speed], 3
-	mov		dword [radius], 20
-	
-	mov		dword [r+RECT.left], 0
-	mov		dword [r+RECT.top], 0
-	mov		eax, [radius]							;radius*2
-	shl		eax, 1
-	mov		[r+RECT.right], eax
-	mov		[r+RECT.bottom], eax
-	
-	;hInstance = GetModuleHandleW(NULL)
-	xor		rcx, rcx
-	sub		rsp, 32
-	call	GetModuleHandleW
-	add		rsp, 32
-	mov		[rbp-56], rax
-	
 	;hHeap = GetProcessHeap()	
 	sub 	rsp, 32									;Shadow store
 	call 	GetProcessHeap	
 	add 	rsp, 32									;Shadow store
 	mov 	[hHeap], rax							;hHeap = GetProcessHeap()
 	
-	mov 	dword [ws+WNDCLASSEXW.cbSize], 80
-	mov 	dword [ws+WNDCLASSEXW.style], 0
-	mov		qword [ws+WNDCLASSEXW.lpfnWndProc], WndProc
-	mov		dword [ws+WNDCLASSEXW.cbClsExtra], 0  
-	mov		rax, [rbp-56]							;HINSTANCE hInstance
-	mov		[ws+WNDCLASSEXW.hInstance], rax
+	;hStdin = GetStdHandle(STD_INPUT_HANDLE);
+	mov 	ecx, -10								;STD_INPUT_HANDLE 
+	call 	GetStdHandle 							;hStdin = GetStdHandle(STD_INPUT_HANDLE);
+	mov 	[hStdin], rax							
+		
+	;hStdout = GetStdHandle(STD_OUTPUT_HANDLE)		
+	mov 	ecx, -11								;STD_OUTPUT_HANDLE
+	call 	GetStdHandle							;hStdout = GetStdHandle(STD_OUTPUT_HANDLE)
+	mov 	[hStdout], rax		
 	
-	;hIcon = (HICON)LoadImageW(NULL, L"bb.ico", IMAGE_ICON, 0, 0, LR_LOADFROMFILE | LR_DEFAULTSIZE | LR_SHARED)
-	mov		rax, 8050								
-	push	rax										;LR_LOADFROMFILE | LR_DEFAULTSIZE | LR_SHARED
-	push	0										;int cy: 0
-	xor		r9, r9									;int cx: 0
-	mov		r8, 1									;UINT type: IMAGE_ICON
-	mov		rdx, iconname							;L"bb.ico"
-	xor		rcx, rcx								;hInstance: NULL
-	sub		rsp, 32
-	call	LoadImageW
-	add		rsp, 48
+	;count[rbx] = 0
+	xor		rbx, rbx
+	mov		qword [closed], 0
+MainLoop:
 	
-	mov		qword [ws+WNDCLASSEXW.hIcon], rax
-	push	rax
-	
-	xor		rcx, rcx
-	mov 	edx, 0x7F00
-	sub		rsp, 32
-	call	LoadCursorW
-	add		rsp, 32
-	mov		qword [ws+WNDCLASSEXW.hCursor], rax
-	
-	mov     ecx, 0x00FFFFFF
-	sub		rsp, 32
-	call	CreateSolidBrush
-	add		rsp, 32
-	mov		qword [ws+WNDCLASSEXW.hbrBackground], rax
-	
-	
-	mov		qword [ws+WNDCLASSEXW.lpszMenuName], 0
-	mov		qword [ws+WNDCLASSEXW.lpszClassName], g_szClassName
-	
-	pop		rax
-	mov		qword [ws+WNDCLASSEXW.hIconSm], rax  
-
-	lea		rcx, [ws]
-	sub		rsp, 32
-	call	RegisterClassExW
-	add		rsp, 32
-	
-	;if (!RegisterClassExW(&wc))
-	movzx   rax, ax
-	mov		r14, rax
-	
-	test	rax, rax
-	jnz		L1
-			
-	mov     r9d, 30h 			; uType
-	mov     r8, "Error!"     	; "Error!"
-	mov     rdx, message    	; "Window Registration Failed!"
-	xor     ecx, ecx        	; hWnd
-	sub		rsp, 32
-	call    MessageBoxW
-	add		rsp, 32
-	xor     eax, eax
-
-L1:
-	;hwnd = CreateWindowEx(
-		;0,
-		;g_szClassName,
-		;L"This is a title",
-		;(WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX),
-		;CW_USEDEFAULT, CW_USEDEFAULT, 700, 387,
-		;NULL, NULL, hInstance, NULL);
-	push	0							;lpParam
-	mov     rax, [rbp-56]
-	push	rax							;hInstance
-	push	0 							;hMenu
-	push	0 							;hWndParent
-	push	387							;nHeight
-	push	700							;nWidth
-	push	0x80000000		 			;Y
-	push	0x80000000		 			;X
-	mov     r9d, 0CA0000h;0x00C80000;0x00CA0000   			;dwStyle: WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX;
-	mov     r8, windowtitle		  		;"This is a title"
-	mov     rdx, g_szClassName 			;lpClassName
-	xor     rcx, rcx        			;dwExStyle
-	sub		rsp, 32
-	call    CreateWindowExW
-	add 	rsp, 96
-	mov 	r15, rax
-	
-	;if (hwnd == NULL)
-	test 	rax, rax
-	jnz		L2
-	call	GetLastError
-	
-	mov     r9d, 0x30 		  					; uType
-	mov     r8, errormsg    					; "Error!"
-	mov     rdx, message1 						; "Window Creation Failed!"
-	xor     ecx, ecx        					; hWnd
-	sub		rsp, 32
-	call    MessageBoxW
-	add		rsp, 32
-	xor     eax, eax
-	jmp		return
-L2:
-	;ShowWindow(hwnd, 1)
-	mov		edx, 1
-	mov		rcx, r15
-	sub		rsp, 32
-	call	ShowWindow
-	add		rsp, 32
-	
-	;UpdateWindow(hwnd)
-	mov		rcx, r15
-	sub		rsp, 32
-	call	UpdateWindow
-	add		rsp, 32
-GetMsgLoop:
-	;while (GetMessage(&Msg, NULL, 0, 0) > 0)
-	xor 	r9, r9
-	xor		r8, r8
 	xor		rdx, rdx
-	lea		rcx, [rbp-48]						;&Msg
-	mov		rbx, rcx
+	mov		rcx, EnumWindowsProc
 	sub		rsp, 32
-	call	GetMessageW
+	call	EnumWindows
 	add		rsp, 32
 	
-	test 	eax, eax
-	jz		.endloop
+	;count ++
+	inc		rbx
+		
+	;closed = 0
+	mov		qword [closed], 0
 	
-	;TranslateMessage(&Msg)
-	mov		rcx, rbx
+	mov		rcx, 5000
 	sub		rsp, 32
-	call	TranslateMessage
+	call	Sleep
 	add		rsp, 32
-	;DispatchMessage(&Msg)
-	mov		rcx, rbx
-	sub		rsp, 32
-	call	DispatchMessageW
-	add		rsp, 32
-	jmp		GetMsgLoop
 	
-.endloop:
-	mov		rax, [rbx+MSG.wParam]
-	
-return:
-	mov		rsp, rbp
-	call    ExitProcess
-	
+	jmp		MainLoop
