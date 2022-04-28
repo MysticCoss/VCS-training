@@ -14,18 +14,19 @@
 // See MFCFileScanner.cpp for the implementation of this class
 //
 
-class CSimpleFrame : public CFrameWnd
+class CSimpleWindow : public CWnd
 {
 private:
-	CEdit m_edit;
+	CEdit ctrl_edit_filepath;
+	CEdit ctrl_edit_filename;
 public:
-
-	CSimpleFrame();
+	CSimpleWindow();
 protected:
+	BOOL PreCreateWindow(CREATESTRUCT& cs) override;
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
 	DECLARE_MESSAGE_MAP()
 };
-BEGIN_MESSAGE_MAP(CSimpleFrame, CFrameWnd)
+BEGIN_MESSAGE_MAP(CSimpleWindow, CWnd)
 	ON_WM_CREATE()
 END_MESSAGE_MAP()
 
