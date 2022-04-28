@@ -11,4 +11,7 @@
 #include "framework.h"
 #include <afxwin.h>
 #include <Windows.h>
+#include <vector>
+#include <string>
+using namespace std;
 #endif //PCH_H
