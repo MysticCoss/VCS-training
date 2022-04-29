@@ -54,13 +54,19 @@ int CSimpleWindow::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	ctrl_edit_filepath.Create(
 		WS_VISIBLE | WS_BORDER | ES_LEFT | ES_AUTOHSCROLL,
-		CRect(clientRect.left + clientRect.Width() * percentPadHorizontal / 100, clientRect.top + clientRect.Height() * percentPadVertical / 100, clientRect.right - clientRect.Width() * percentPadHorizontal / 100, clientRect.top + clientRect.Height() * percentPadVertical / 100 + clientRect.Height() * percentButtonHeight / 100),
+		CRect(clientRect.left + clientRect.Width() * percentPadHorizontal / 100, 
+			clientRect.top + clientRect.Height() * percentPadVertical / 100, 
+			clientRect.right - clientRect.Width() * percentPadHorizontal / 100, 
+			clientRect.top + clientRect.Height() * percentPadVertical / 100 + clientRect.Height() * percentButtonHeight / 100),
 		this,
 		id_ctrl_edit_filepath);
 
 	ctrl_edit_filename.Create(
 		WS_VISIBLE | WS_BORDER | ES_LEFT | ES_AUTOHSCROLL,
-		CRect(clientRect.left + clientRect.Width() * percentPadHorizontal / 100, clientRect.top + clientRect.Height() * percentPadVertical * 2 / 100 + clientRect.Height() * percentButtonHeight / 100, clientRect.right - clientRect.Width() * percentPadHorizontal / 100, clientRect.top + clientRect.Height() * percentPadVertical * 2 / 100 + clientRect.Height() * percentButtonHeight * 2/ 100),
+		CRect(clientRect.left + clientRect.Width() * percentPadHorizontal / 100, 
+			clientRect.top + clientRect.Height() * percentPadVertical * 2 / 100 + clientRect.Height() * percentButtonHeight / 100, 
+			clientRect.right - clientRect.Width() * percentPadHorizontal / 100,
+			clientRect.top + clientRect.Height() * percentPadVertical * 2 / 100 + clientRect.Height() * percentButtonHeight * 2/ 100),
 		this, 
 		id_ctrl_edit_filename);
 
@@ -71,13 +77,19 @@ int CSimpleWindow::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	ctrl_button_search.Create(
 		_T("Search"), 
 		WS_VISIBLE, 
-		CRect(10 + 250, 65, 10 + 605 - 250, 65 + 25), 
+		CRect(clientRect.left + clientRect.Width() * percentPadHorizontal / 100, 
+			clientRect.top + clientRect.Height() * percentPadVertical * 3 / 100 + clientRect.Height() * percentButtonHeight * 2 / 100 , 
+			clientRect.right - clientRect.Width() * percentPadHorizontal / 100,
+			clientRect.top + clientRect.Height() * percentPadVertical * 3 / 100 + clientRect.Height() * percentButtonHeight * 2 / 100 + clientRect.Height() * 8 / 100),
 		this,
 		id_ctrl_button_search);
 
 	ctrl_list_foundfile.Create(
-		LVS_REPORT,
-		CRect(10, 95, 10 + 605, 95 + 25+200),
+		LVS_REPORT | WS_BORDER,
+		CRect(clientRect.left + clientRect.Width() * percentPadHorizontal / 100,
+			clientRect.top + clientRect.Height() * percentPadVertical * 4 / 100 + clientRect.Height() * percentButtonHeight * 2 / 100 + clientRect.Height() * 8 / 100,
+			clientRect.right - clientRect.Width() * percentPadHorizontal / 100,
+			clientRect.bottom - clientRect.Height() * percentPadVertical / 100),
 		this,
 		id_ctrl_list_foundfile);
 
@@ -110,6 +122,9 @@ int CSimpleWindow::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	CString searcFileName = _T("");
 
 	ctrl_edit_filepath.GetWindowText(searchPath);
+	if (searchPath.IsEmpty()) {
+		searchPath = _T("C:");
+	}
 
 	ctrl_edit_filename.GetWindowText(searcFileName);
 
