@@ -1,6 +1,11 @@
 ﻿#include "pch.h"
 #include "MFCFileScanner.h"
 
+BOOL CListCtrlEx::OnEraseBkgnd(CDC* pDC)
+{
+	return false;
+}
+
 CSimpleWindow::CSimpleWindow()
 {
 	font.CreateFontW(
@@ -41,6 +46,8 @@ CSimpleWindow::CSimpleWindow()
 		0, 
 		0, 
 		0);
+
+	//SetupDynamicResize();
 }
 
 int CSimpleWindow::OnCreate(LPCREATESTRUCT lpCreateStruct)
@@ -128,7 +135,7 @@ int CSimpleWindow::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	ctrl_edit_filename.GetWindowText(searcFileName);
 
-	CString fullpath = searchPath + _T("\\") + searcFileName + _T("*");
+	CString fullpath = searchPath + _T("\\") + searcFileName;
 
 	WIN32_FIND_DATA ffd;
 
@@ -146,6 +153,8 @@ int CSimpleWindow::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	}
 
 	int count = 0;
+	ctrl_list_foundfile.SetRedraw(false);
+	ctrl_list_foundfile.DeleteAllItems();
 	do
 	{
 		CString fileName = ffd.cFileName;
@@ -231,12 +240,117 @@ int CSimpleWindow::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		ctrl_list_foundfile.SetItem(&lvi);
 
 	} while (FindNextFile(hFind, &ffd) != 0);
+	ctrl_list_foundfile.SetRedraw(true);
+	
+	if(!ctrl_list_foundfile.IsWindowVisible())
+	{
+		ctrl_list_foundfile.ShowWindow(SW_SHOW);
+	}
+}
 
-	ctrl_list_foundfile.ShowWindow(SW_SHOW);
+void CSimpleWindow::OnSizing(UINT nType, LPRECT newsize)
+{
+	constexpr int percentPadHorizontal = 2;
+	constexpr int percentPadVertical = 3;
+	constexpr int percentButtonHeight = 13;
+	
+	CRect clientRect;
+	GetClientRect(&clientRect);
+	CRect r;
+	r = CRect(clientRect.left + clientRect.Width() * percentPadHorizontal / 100,
+		clientRect.top + clientRect.Height() * percentPadVertical * 2 / 100 + clientRect.Height() * percentButtonHeight / 100,
+		clientRect.right - clientRect.Width() * percentPadHorizontal / 100,
+		clientRect.top + clientRect.Height() * percentPadVertical * 2 / 100 + clientRect.Height() * percentButtonHeight * 2 / 100);
+
+	ctrl_edit_filename.SetWindowPos(0, r.left, r.top, r.Width(), r.Height(), 0);
+
+	r = CRect(clientRect.left + clientRect.Width() * percentPadHorizontal / 100,
+		clientRect.top + clientRect.Height() * percentPadVertical / 100,
+		clientRect.right - clientRect.Width() * percentPadHorizontal / 100,
+		clientRect.top + clientRect.Height() * percentPadVertical / 100 + clientRect.Height() * percentButtonHeight / 100);
+
+	ctrl_edit_filepath.SetWindowPos(0, r.left, r.top, r.Width(), r.Height(), 0);
+
+	r = CRect(clientRect.left + clientRect.Width() * percentPadHorizontal / 100,
+		clientRect.top + clientRect.Height() * percentPadVertical * 3 / 100 + clientRect.Height() * percentButtonHeight * 2 / 100,
+		clientRect.right - clientRect.Width() * percentPadHorizontal / 100,
+		clientRect.top + clientRect.Height() * percentPadVertical * 3 / 100 + clientRect.Height() * percentButtonHeight * 2 / 100 + clientRect.Height() * 8 / 100);
+
+	ctrl_button_search.SetWindowPos(0, r.left, r.top, r.Width(), r.Height(), 0);
+
+	r = CRect(clientRect.left + clientRect.Width() * percentPadHorizontal / 100,
+		clientRect.top + clientRect.Height() * percentPadVertical * 4 / 100 + clientRect.Height() * percentButtonHeight * 2 / 100 + clientRect.Height() * 8 / 100,
+		clientRect.right - clientRect.Width() * percentPadHorizontal / 100,
+		clientRect.bottom - clientRect.Height() * percentPadVertical / 100);
+
+	ctrl_list_foundfile.SetWindowPos(0, r.left, r.top, r.Width(), r.Height(), 0);
+}
+
+void CSimpleWindow::OnSize(UINT nType, int cx, int cy)
+{
+	constexpr int percentPadHorizontal = 2;
+	constexpr int percentPadVertical = 3;
+	constexpr int percentButtonHeight = 13;
+
+	CRect clientRect;
+	GetClientRect(&clientRect);
+	CRect r;
+	r = CRect(clientRect.left + clientRect.Width() * percentPadHorizontal / 100,
+		clientRect.top + clientRect.Height() * percentPadVertical * 2 / 100 + clientRect.Height() * percentButtonHeight / 100,
+		clientRect.right - clientRect.Width() * percentPadHorizontal / 100,
+		clientRect.top + clientRect.Height() * percentPadVertical * 2 / 100 + clientRect.Height() * percentButtonHeight * 2 / 100);
+
+	ctrl_edit_filename.SetWindowPos(0, r.left, r.top, r.Width(), r.Height(), 0);
+
+	r = CRect(clientRect.left + clientRect.Width() * percentPadHorizontal / 100,
+		clientRect.top + clientRect.Height() * percentPadVertical / 100,
+		clientRect.right - clientRect.Width() * percentPadHorizontal / 100,
+		clientRect.top + clientRect.Height() * percentPadVertical / 100 + clientRect.Height() * percentButtonHeight / 100);
+
+	ctrl_edit_filepath.SetWindowPos(0, r.left, r.top, r.Width(), r.Height(), 0);
+
+	r = CRect(clientRect.left + clientRect.Width() * percentPadHorizontal / 100,
+		clientRect.top + clientRect.Height() * percentPadVertical * 3 / 100 + clientRect.Height() * percentButtonHeight * 2 / 100,
+		clientRect.right - clientRect.Width() * percentPadHorizontal / 100,
+		clientRect.top + clientRect.Height() * percentPadVertical * 3 / 100 + clientRect.Height() * percentButtonHeight * 2 / 100 + clientRect.Height() * 8 / 100);
+
+	ctrl_button_search.SetWindowPos(0, r.left, r.top, r.Width(), r.Height(), 0);
+
+	r = CRect(clientRect.left + clientRect.Width() * percentPadHorizontal / 100,
+		clientRect.top + clientRect.Height() * percentPadVertical * 4 / 100 + clientRect.Height() * percentButtonHeight * 2 / 100 + clientRect.Height() * 8 / 100,
+		clientRect.right - clientRect.Width() * percentPadHorizontal / 100,
+		clientRect.bottom - clientRect.Height() * percentPadVertical / 100);
+
+	ctrl_list_foundfile.SetWindowPos(0, r.left, r.top, r.Width(), r.Height(), 0);
+}
+
+void CSimpleWindow::OnGetMinMaxInfo(MINMAXINFO* lpMMI)
+{
+	lpMMI->ptMinTrackSize.x = 636;
+	lpMMI->ptMinTrackSize.y = 404;
+}
+
+void CSimpleWindow::SetupDynamicResize()
+{
+	this->EnableDynamicLayout(TRUE);
+	CMFCDynamicLayout* dynamicLayout = this->GetDynamicLayout();
+
+	auto moveSettings = CMFCDynamicLayout::MoveNone();
+	auto sizeSettings = CMFCDynamicLayout::SizeHorizontal(100);
+
+	dynamicLayout->AddItem(ctrl_edit_filepath.m_hWnd, moveSettings, sizeSettings);
+
+	dynamicLayout->AddItem(ctrl_edit_filename, moveSettings, sizeSettings);
+
+	dynamicLayout->AddItem(id_ctrl_button_search, moveSettings, sizeSettings);
+
+
+	sizeSettings = CMFCDynamicLayout::SizeHorizontalAndVertical(100, 100);
+	dynamicLayout->AddItem(id_ctrl_list_foundfile, moveSettings, sizeSettings);
 }
 
 
-	BOOL CSimpleApp::InitInstance()
+BOOL CSimpleApp::InitInstance()
 	{
 		// Use a pointer to the window's frame for the application
 		// to use the window
