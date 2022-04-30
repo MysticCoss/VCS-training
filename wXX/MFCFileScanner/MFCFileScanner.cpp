@@ -160,17 +160,30 @@ int CSimpleWindow::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		CString fileName = ffd.cFileName;
 
 		CString sizeString;
+
 		QWORD size = ffd.nFileSizeHigh;
+
 		size <<= 4;
+
 		size += ffd.nFileSizeLow;
+
 		sizeString.Format(_T("%llu bytes"), size);
+
+		if (!StrCmp(searchPath.Right(1), _T("\\")))
+		{
+			searchPath.Truncate(searchPath.GetLength() - 1);
+		}
 
 		CString fullPath = searchPath + _T("\\") + fileName;
 
 		CString dateModifiedString;
+
 		auto dateModified = ffd.ftLastWriteTime;
+
 		auto hHeap = GetProcessHeap();
+
 		auto buffer = HeapAlloc(hHeap, HEAP_ZERO_MEMORY, 1024);
+
 		assert(buffer != 0);
 #ifdef UNICODE
 		SHFormatDateTime(&dateModified, NULL, (LPWSTR)buffer, 512);
