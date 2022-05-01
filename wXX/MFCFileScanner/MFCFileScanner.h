@@ -2,7 +2,10 @@
 // MFCFileScanner.h : main header file for the MFCFileScanner application
 //
 #pragma once
-
+#include "framework.h"
+#include <afxwin.h>
+#include <Windows.h>
+#include <string>
 #ifndef __AFXWIN_H__
 	#error "include 'pch.h' before including this file for PCH"
 #endif

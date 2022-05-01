@@ -1,5 +1,4 @@
-﻿#include "pch.h"
-#include "MFCFileScanner.h"
+﻿#include "MFCFileScanner.h"
 
 BOOL CListCtrlEx::OnEraseBkgnd(CDC* pDC)
 {
