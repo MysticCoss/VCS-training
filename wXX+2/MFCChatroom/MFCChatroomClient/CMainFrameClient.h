@@ -2,7 +2,7 @@
 #include "CListCtrlEx.h"
 #include "framework.h"
 
-class CMainFrameClient : public CFrameWnd
+class CMainFrameClient : public CFrameWnd, public CSocket
 {
 private:
 	CEdit ctrl_edit_filepath;
