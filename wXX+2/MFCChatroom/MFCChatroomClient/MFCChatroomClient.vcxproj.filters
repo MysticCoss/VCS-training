@@ -33,6 +33,9 @@
     <ClInclude Include="CListCtrlEx.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ClientSocket.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MFCChatroomClient.cpp">
@@ -42,6 +45,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="CListCtrlEx.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ClientSocket.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

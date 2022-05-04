@@ -150,7 +150,7 @@ void CMainFrameClient::OnButtonClick_button_connect()
 
 	if (!CSocket::Create(port, SOCK_STREAM, host))
 	{
-		MessageBox(L"fail");
+		::MessageBox(NULL, _T("Failed to create socket"), _T("Error"), MB_OK | MB_ICONERROR);
 	}
 	
 }

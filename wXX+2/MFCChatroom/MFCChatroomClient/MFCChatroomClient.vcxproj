@@ -184,6 +184,7 @@
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="ClientSocket.h" />
     <ClInclude Include="CListCtrlEx.h" />
     <ClInclude Include="CMainFrameClient.h" />
     <ClInclude Include="framework.h" />
@@ -192,6 +193,7 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="ClientSocket.cpp" />
     <ClCompile Include="CListCtrlEx.cpp" />
     <ClCompile Include="CMainFrameClient.cpp" />
     <ClCompile Include="MFCChatroomClient.cpp" />
