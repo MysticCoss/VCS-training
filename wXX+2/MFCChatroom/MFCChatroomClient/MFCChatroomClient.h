@@ -8,6 +8,7 @@
 struct CWinAppClient : public CWinApp
 {
 	BOOL InitInstance() override;
+	BOOL ExitInstance() override;
 };
 
 extern CWinAppClient theApp;

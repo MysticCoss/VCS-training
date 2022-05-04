@@ -1,5 +1,6 @@
 #include "CMainFrameClient.h"
-
+#include <Windows.h>
+#include <ws2tcpip.h>
 //BOOL CListCtrlEx::OnEraseBkgnd(CDC* pDC)
 //{
 //	return false;
@@ -128,7 +129,68 @@ int CMainFrameClient::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 void CMainFrameClient::OnButtonClick_button_connect()
 {
+	//Get info from edit box
+	CString host = _T(""), portStr = _T("");
+	ctrl_edit_filepath.GetWindowText(host);
+	ctrl_edit_filename.GetWindowText(portStr);
+	if (host.IsEmpty()) {
+		//CString info;
+		//info.Format(_T("Empty host name"));
+		::MessageBox(NULL, _T("Empty host name"), _T("Error"), MB_OK | MB_ICONERROR);
+		return;
+	}
+	if (portStr.IsEmpty()) {
+		//CString info;
+		//info.Format(_T("Empty host name"));
+		::MessageBox(NULL, _T("Empty port"), _T("Error"), MB_OK | MB_ICONERROR);
+		return;
+	}
 
+	auto port = StrToInt(portStr);
+
+	struct addrinfo* result = NULL,
+		* ptr = NULL,
+		hints;
+
+	ZeroMemory(&hints, sizeof(hints));
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_protocol = IPPROTO_TCP;
+	auto hHeap = GetProcessHeap();
+	auto a = host.GetLength();
+	auto buffsize = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, host, -1, 0, 0, 0, 0);
+	auto err = GetLastError();
+	auto cstrhost = HeapAlloc(hHeap, HEAP_ZERO_MEMORY, buffsize);
+
+	if (!WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, host, -1, (LPSTR)cstrhost, buffsize, 0, 0))
+	{
+		::MessageBox(NULL, _T("Invalid host name"), _T("Error"), MB_OK | MB_ICONERROR);
+		return;
+	}
+
+	// Resolve the server address and port
+	//output to *result* object
+	auto iResult = getaddrinfo((PCSTR)cstrhost, "443", &hints, &result);
+	if (iResult != 0) {
+		CString info;
+		info.Format(_T("WSAStartup failed: %d\n"), iResult);
+		::MessageBox(NULL, info, _T("Error"), MB_OK | MB_ICONERROR);
+		return;
+	}
+	SOCKET ConnectSocket = INVALID_SOCKET;
+
+	ptr = result;
+
+	// Create a SOCKET for connecting to server
+	ConnectSocket = socket(ptr->ai_family, ptr->ai_socktype,
+		ptr->ai_protocol);
+	if (ConnectSocket == INVALID_SOCKET) {
+		CString info;
+		info.Format(_T("Error at socket(): %ld\n"), WSAGetLastError());
+		::MessageBox(NULL, info, _T("Error"), MB_OK | MB_ICONERROR);
+		freeaddrinfo(result);
+		return;
+	}
 }
 
 void CMainFrameClient::OnSizing(UINT nType, LPRECT newsize)

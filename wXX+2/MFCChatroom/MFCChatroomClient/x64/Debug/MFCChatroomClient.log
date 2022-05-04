@@ -1,4 +1,3 @@
 ﻿  CMainFrameClient.cpp
-  MFCChatroomClient.cpp
-  Generating Code...
-  MFCChatroomClient.vcxproj -> D:\Computer Vault\VCS-training\wXX+2\MFCChatroom\x64\Debug\MFCChatroomClient.exe
+  LINK : C:\Users\whoisyourdaddy\Documents\GitHub\VCS-training\wXX+2\MFCChatroom\x64\Debug\MFCChatroomClient.exe not found or not built by the last incremental link; performing full link
+  MFCChatroomClient.vcxproj -> C:\Users\whoisyourdaddy\Documents\GitHub\VCS-training\wXX+2\MFCChatroom\x64\Debug\MFCChatroomClient.exe
