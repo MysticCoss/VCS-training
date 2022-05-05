@@ -150,16 +150,18 @@ void CMainFrameServer::OnButtonClick_button_start()
 	if (!mySock.Create(port, SOCK_STREAM, host))
 	{
 		::MessageBox(NULL, _T("Failed to create socket"), _T("Error"), MB_OK | MB_ICONERROR);
+		return;
 	}
 	if (!mySock.Listen())
 	{
 		::MessageBox(NULL, _T("Failed to bind socket"), _T("Error"), MB_OK | MB_ICONERROR);
+		return;
 	}
 }
 
 void CMainFrameServer::OnButtonClick_button_stop()
 {
-	mySock.
+	mySock.Close();
 }
 
 void CMainFrameServer::OnSizing(UINT nType, LPRECT newsize)

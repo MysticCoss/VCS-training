@@ -1,5 +1,2 @@
-﻿  CListCtrlEx.cpp
-  CMainFrameServer.cpp
-  MFCChatroomServer.cpp
-  Generating Code...
+﻿  ServerSocket.cpp
   MFCChatroomServer.vcxproj -> D:\Computer Vault\VCS-training\wXX+2\MFCChatroom\x64\Debug\MFCChatroomServer.exe

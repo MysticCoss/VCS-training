@@ -152,7 +152,6 @@ void CMainFrameClient::OnButtonClick_button_connect()
 	{
 		::MessageBox(NULL, _T("Failed to create socket"), _T("Error"), MB_OK | MB_ICONERROR);
 	}
-	
 }
 
 void CMainFrameClient::OnSizing(UINT nType, LPRECT newsize)
