@@ -12,6 +12,8 @@ BEGIN_MESSAGE_MAP(CMainFrameServer, CFrameWnd)
 	ON_WM_SIZING()
 	ON_WM_SIZE()
 END_MESSAGE_MAP()
+
+
 CMainFrameServer::CMainFrameServer()
 {
 	font.CreateFontW(
@@ -45,13 +47,24 @@ CMainFrameServer::CMainFrameServer()
 
 	CFrameWnd::Create(
 		wndclass,
-		_T("Chatbox"),
+		_T("Chatbox server"),
 		WS_OVERLAPPEDWINDOW,
 		rectDefault,
 		NULL,
 		0,
 		0,
 		0);
+	mySock.SetListener(this);
+}
+
+void CMainFrameServer::OnAccept()
+{
+	return;
+}
+
+void CMainFrameServer::OnReceive()
+{
+	return;
 }
 
 int CMainFrameServer::OnCreate(LPCREATESTRUCT lpCreateStruct)
@@ -86,7 +99,7 @@ int CMainFrameServer::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	ctrl_edit_filename.SetCueBanner(_T("Enter port number"), 1);
 
 	ctrl_button_search.Create(
-		_T("Search"),
+		_T("Start"),
 		WS_VISIBLE,
 		CRect(ServerRect.left + ServerRect.Width() * percentPadHorizontal / 100,
 			ServerRect.top + ServerRect.Height() * percentPadVertical * 3 / 100 + ServerRect.Height() * percentButtonHeight * 2 / 100,
@@ -146,7 +159,7 @@ void CMainFrameServer::OnButtonClick_button_start()
 	}
 
 	auto port = StrToInt(portStr);
-
+	
 	if (!mySock.Create(port, SOCK_STREAM, host))
 	{
 		::MessageBox(NULL, _T("Failed to create socket"), _T("Error"), MB_OK | MB_ICONERROR);
@@ -157,6 +170,7 @@ void CMainFrameServer::OnButtonClick_button_start()
 		::MessageBox(NULL, _T("Failed to bind socket"), _T("Error"), MB_OK | MB_ICONERROR);
 		return;
 	}
+	//mySock.Initt(this);
 }
 
 void CMainFrameServer::OnButtonClick_button_stop()

@@ -1,6 +1,7 @@
 #pragma once
 #include "CListCtrlEx.h"
 #include "framework.h"
+#include "ClientSocket.h"
 
 class CMainFrameClient : public CFrameWnd, public CSocket
 {
@@ -18,6 +19,8 @@ private:
 
 	CListCtrlEx ctrl_list_foundfile;
 	UINT id_ctrl_list_foundfile = 3;
+
+	ClientSocket mySocket;
 public:
 	CMainFrameClient();
 protected:

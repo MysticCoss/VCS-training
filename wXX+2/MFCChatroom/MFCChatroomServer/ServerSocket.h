@@ -1,13 +1,15 @@
 #pragma once
-#include <vector>
-
 #include "framework.h"
+#include "IListener.h"
+
 class ServerSocket : public CSocket
 {
+private:
+	IListener* myMaster;
 public:
-	ServerSocket();
-	virtual ~ServerSocket();
-	std::vector<CSocket> clientList;
+	static SOCKET clientList[100];
+	static int clientCount;
+	void SetListener(IListener* master);
 	void OnAccept(int nErrorCode) override;
 	void OnReceive(int nErrorCode) override;
 };

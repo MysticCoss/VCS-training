@@ -186,6 +186,7 @@
     <ClInclude Include="CListCtrlEx.h" />
     <ClInclude Include="CMainFrameServer.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="IListener.h" />
     <ClInclude Include="MFCChatroomServer.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="ServerSocket.h" />

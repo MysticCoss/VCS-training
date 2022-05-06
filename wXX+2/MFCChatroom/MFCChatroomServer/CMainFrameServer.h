@@ -1,9 +1,11 @@
 #pragma once
 #include "CListCtrlEx.h"
 #include "framework.h"
+#include "IListener.h"
 #include "ServerSocket.h"
 
-class CMainFrameServer : public CFrameWnd
+
+class CMainFrameServer : public CFrameWnd, public IListener
 {
 private:
 	CEdit ctrl_edit_filepath;
@@ -23,10 +25,13 @@ private:
 	ServerSocket mySock;
 public:
 	CMainFrameServer();
+	//void OnClientChange();
 protected:
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
 	void OnButtonClick_button_start();
 	void OnButtonClick_button_stop();
+	void OnAccept() override;
+	void OnReceive() override;
 	afx_msg void OnSizing(UINT nType, LPRECT newsize);
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	afx_msg void OnGetMinMaxInfo(MINMAXINFO* lpMMI);

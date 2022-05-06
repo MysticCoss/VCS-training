@@ -36,6 +36,9 @@
     <ClInclude Include="ServerSocket.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="IListener.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MFCChatroomServer.cpp">

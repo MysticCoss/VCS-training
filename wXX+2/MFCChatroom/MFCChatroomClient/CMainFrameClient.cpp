@@ -46,7 +46,7 @@ CMainFrameClient::CMainFrameClient()
 
 	CFrameWnd::Create(
 		wndclass,
-		_T("Chatbox"),
+		_T("Chatbox client"),
 		WS_OVERLAPPEDWINDOW,
 		rectDefault,
 		NULL,
@@ -87,7 +87,7 @@ int CMainFrameClient::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	ctrl_edit_filename.SetCueBanner(_T("Enter port number"), 1);
 
 	ctrl_button_search.Create(
-		_T("Search"),
+		_T("Connect"),
 		WS_VISIBLE,
 		CRect(clientRect.left + clientRect.Width() * percentPadHorizontal / 100,
 			clientRect.top + clientRect.Height() * percentPadVertical * 3 / 100 + clientRect.Height() * percentButtonHeight * 2 / 100,
@@ -147,11 +147,22 @@ void CMainFrameClient::OnButtonClick_button_connect()
 	}
 
 	auto port = StrToInt(portStr);
-
-	if (!CSocket::Create(port, SOCK_STREAM, host))
+	
+	if (!mySocket.Create(0, SOCK_STREAM, 0))
 	{
-		::MessageBox(NULL, _T("Failed to create socket"), _T("Error"), MB_OK | MB_ICONERROR);
+		CString info;
+		info.Format(_T("Failed to create socket with error code: %d"), GetLastError());
+		::MessageBox(NULL, info, _T("Error"), MB_OK | MB_ICONERROR);
+		return;
 	}
+
+	if (!mySocket.Connect(host, port)) {
+		CString info;
+		info.Format(_T("Failed to connect to address %s:%s with error code: %d"), host, portStr, GetLastError());
+		::MessageBox(NULL, info, _T("Error"), MB_OK | MB_ICONERROR);
+		return;
+	}
+
 }
 
 void CMainFrameClient::OnSizing(UINT nType, LPRECT newsize)

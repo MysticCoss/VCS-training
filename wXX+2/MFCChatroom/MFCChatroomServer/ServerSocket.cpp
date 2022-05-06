@@ -1,16 +1,25 @@
 #include "ServerSocket.h"
 
-ServerSocket::ServerSocket()
-= default;
+SOCKET ServerSocket::clientList[100];
+int ServerSocket::clientCount = 0;
 
-ServerSocket::~ServerSocket()
-= default;
+//void ServerSocket::Initt(CMainFrameServer* master)
+//{
+//	myMaster = master;
+//}
+
+void ServerSocket::SetListener(IListener* master)
+{
+	myMaster = master;
+}
 
 void ServerSocket::OnAccept(int nErrorCode)
 {
-	CSocket m_Client;
-	m_Client.m_hSocket = INVALID_SOCKET;
-	if(!Accept(m_Client))
+	CSocket* m_Client = new CSocket;
+	m_Client->m_hSocket = INVALID_SOCKET;
+	SOCKADDR thisSockAddr;
+	int thisSockAddrLen = sizeof(SOCKADDR);
+	if(!Accept(*m_Client,&thisSockAddr,&thisSockAddrLen))
 	{
 		CString info = _T("");
 		info.Format(_T("Error accepting client connection with error code: %d"), GetLastError());
@@ -18,8 +27,12 @@ void ServerSocket::OnAccept(int nErrorCode)
 	}
 	else
 	{
-		//TODO: Initialize a list of client (dont know how)
-		/*clientList.push_back(m_Client);*/
+		clientList[clientCount++] = m_Client->m_hSocket;
+		if (thisSockAddr.sa_family == AF_INET) {
+			//this is ipv4 address
+			struct SOOCKADDR_IN* thisSockAddr_in = (struct SOOCKADDR_IN*)thisSockAddr;
+		}
+		myMaster->OnAccept();
 	}
 	CSocket::OnAccept(nErrorCode);
 }
