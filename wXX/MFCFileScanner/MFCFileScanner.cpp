@@ -205,7 +205,7 @@ int CSimpleWindow::OnCreate(LPCREATESTRUCT lpCreateStruct)
 #endif
 		int subItemCount = 0;
 
-		//TODO: Insert data to CListCtrl
+		
 		CString insertStr;
 		lvi.mask = LVIF_TEXT;
 		lvi.iItem = count++;

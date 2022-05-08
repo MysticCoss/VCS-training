@@ -14,15 +14,19 @@ private:
 	CEdit ctrl_edit_filename;
 	UINT id_ctrl_edit_filename = 1;
 
-	CButton ctrl_button_search;
-	UINT id_ctrl_button_search = 2;
+	CButton ctrl_button_start;
+	UINT id_ctrl_button_start = 2;
+
+	CButton ctrl_button_stop;
+	UINT id_ctrl_button_stop = 4;
 
 	CFont font;
 
-	CListCtrlEx ctrl_list_foundfile;
-	UINT id_ctrl_list_foundfile = 3;
+	CListCtrlEx ctrl_list_connectedclient;
+	UINT id_ctrl_list_connectedclient = 3;
 
 	ServerSocket mySock;
+	
 public:
 	CMainFrameServer();
 	//void OnClientChange();
@@ -30,7 +34,7 @@ protected:
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
 	void OnButtonClick_button_start();
 	void OnButtonClick_button_stop();
-	void OnAccept() override;
+	void OnAccept(CString ipAddress, USHORT port) override;
 	void OnReceive() override;
 	afx_msg void OnSizing(UINT nType, LPRECT newsize);
 	afx_msg void OnSize(UINT nType, int cx, int cy);

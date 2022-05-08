@@ -27,12 +27,22 @@ void ServerSocket::OnAccept(int nErrorCode)
 	}
 	else
 	{
+		struct sockaddr_in* inaddr_ptr = NULL;
 		clientList[clientCount++] = m_Client->m_hSocket;
-		if (thisSockAddr.sa_family == AF_INET) {
-			//this is ipv4 address
-			struct SOOCKADDR_IN* thisSockAddr_in = (struct SOOCKADDR_IN*)thisSockAddr;
+		if (thisSockAddr.sa_family == AF_INET)
+		{
+			inaddr_ptr = (struct sockaddr_in*)&thisSockAddr;
 		}
-		myMaster->OnAccept();
+		else
+		{
+			/* not an IPv4 address */
+			::MessageBox(NULL, _T("Only Ipv4 supported"), _T("Error"), MB_ICONERROR | MB_OK);
+			return;
+		}
+		auto ipStr = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 32);
+		inet_ntop(AF_INET, (void*)&(inaddr_ptr->sin_addr), (PSTR)ipStr, 32);
+		CString ipAddress((LPCSTR)ipStr);
+		myMaster->OnAccept(ipAddress, inaddr_ptr->sin_port);
 	}
 	CSocket::OnAccept(nErrorCode);
 }
@@ -45,4 +55,17 @@ void ServerSocket::OnReceive(int nErrorCode)
 	CString recvString;
 	cArchive >> recvString;
 	::MessageBox(NULL, recvString, _T("Your message!"), MB_OK);
+}
+
+void ServerSocket::Close()
+{
+	for(int i = 0; i < clientCount; i++)
+	{
+		auto clientSock = FromHandle(clientList[i]);
+		clientSock->Close();
+		clientSock->Detach();
+		clientList[i] = INVALID_SOCKET;
+	}
+	clientCount = 0;
+	CSocket::Close();
 }

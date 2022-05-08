@@ -12,4 +12,5 @@ public:
 	void SetListener(IListener* master);
 	void OnAccept(int nErrorCode) override;
 	void OnReceive(int nErrorCode) override;
+	void Close() override;
 };

@@ -13,6 +13,7 @@ BEGIN_MESSAGE_MAP(CMainFrameClient, CFrameWnd)
 	ON_WM_SIZING()
 	ON_WM_SIZE()
 END_MESSAGE_MAP()
+
 CMainFrameClient::CMainFrameClient()
 {
 	font.CreateFontW(
