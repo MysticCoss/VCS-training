@@ -9,7 +9,8 @@
 BEGIN_MESSAGE_MAP(CMainFrameClient, CFrameWnd)
 	ON_WM_CREATE()
 	ON_WM_GETMINMAXINFO()
-	ON_BN_CLICKED(2, OnButtonClick_button_connect) //id_ctrl_list_foundfile
+	ON_BN_CLICKED(2, OnButtonClick_button_connect) //id_ctrl_button_connect
+	ON_BN_CLICKED(5, OnButtonClick_button_send)	//id_ctrl_button_send
 	ON_WM_SIZING()
 	ON_WM_SIZE()
 END_MESSAGE_MAP()
@@ -61,9 +62,9 @@ int CMainFrameClient::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	CRect clientRect;
 	GetClientRect(&clientRect);
 
-	int percentPadHorizontal = 2;
-	int percentPadVertical = 3;
-	int percentButtonHeight = 8;
+	constexpr int percentPadHorizontal = 1;
+	constexpr int percentPadVertical = 3;
+	constexpr int percentButtonHeight = 8;
 
 	ctrl_edit_filepath.Create(
 		WS_VISIBLE | WS_BORDER | ES_LEFT | ES_AUTOHSCROLL,
@@ -97,27 +98,39 @@ int CMainFrameClient::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		this,
 		id_ctrl_button_search);
 
-	ctrl_list_foundfile.Create(
-		LVS_REPORT | WS_BORDER,
+	ctrl_edit_chatbox.Create(
+		ES_LEFT | ES_AUTOHSCROLL | WS_VISIBLE | ES_READONLY,
 		CRect(clientRect.left + clientRect.Width() * percentPadHorizontal / 100,
 			clientRect.top + clientRect.Height() * percentPadVertical * 4 / 100 + clientRect.Height() * percentButtonHeight * 2 / 100 + clientRect.Height() * 8 / 100,
 			clientRect.right - clientRect.Width() * percentPadHorizontal / 100,
+			clientRect.bottom - clientRect.Height() * percentPadVertical * 2/ 100 - clientRect.Height() * percentButtonHeight / 100),
+		this,
+		id_ctrl_edit_chatbox);
+
+	ctrl_edit_chatinput.Create(
+		ES_LEFT | ES_AUTOHSCROLL | WS_BORDER | WS_VISIBLE,
+		CRect(clientRect.left + clientRect.Width() * percentPadHorizontal / 100,
+			clientRect.bottom - clientRect.Height() * percentPadVertical / 100 - clientRect.Height() * percentButtonHeight / 100,
+			clientRect.right - clientRect.Width() * percentPadHorizontal / 100 - clientRect.Width() * 2 * percentPadHorizontal / 100 - clientRect.Width() * 5 / 100,
 			clientRect.bottom - clientRect.Height() * percentPadVertical / 100),
 		this,
-		id_ctrl_list_foundfile);
+		id_ctrl_edit_chatinput);
 
-	ctrl_list_foundfile.SetBkColor(0xd4d4d3);
+	ctrl_button_send.Create(
+		_T("Send"),
+		WS_VISIBLE,
+		CRect(clientRect.right - clientRect.Width() * percentPadHorizontal / 100 - clientRect.Width() * percentPadHorizontal / 100 - clientRect.Width() * 5 / 100,
+			clientRect.bottom - clientRect.Height() * percentPadVertical / 100 - clientRect.Height() * percentButtonHeight / 100,
+			clientRect.right - clientRect.Width() * percentPadHorizontal / 100,
+			clientRect.bottom - clientRect.Height() * percentPadVertical / 100),
+		this,
+		id_ctrl_button_send);
 
-	int nCol = 0;
-	CRect rect;
-	ctrl_list_foundfile.GetClientRect(&rect);
-	constexpr int baseColumnNumberOfUnit = 10;
-	const int baseColumnWidth = rect.Width() / baseColumnNumberOfUnit;
-	ctrl_list_foundfile.InsertColumn(nCol++, _T("File name"), LVCFMT_LEFT, baseColumnWidth * 2);
-	ctrl_list_foundfile.InsertColumn(nCol++, _T("Size"), LVCFMT_LEFT, baseColumnWidth * 2);
-	ctrl_list_foundfile.InsertColumn(nCol++, _T("Full path"), LVCFMT_LEFT, baseColumnWidth * 2);
-	ctrl_list_foundfile.InsertColumn(nCol++, _T("Date modified"), LVCFMT_LEFT, baseColumnWidth * 2);
-	ctrl_list_foundfile.InsertColumn(nCol++, _T("Date created"), LVCFMT_LEFT, rect.Width() - baseColumnWidth * 8);
+	ctrl_edit_chatbox.SetFont(&font, 1);
+
+	ctrl_edit_chatinput.SetFont(&font, 1);
+
+	ctrl_button_send.SetFont(&font, 1);
 
 	ctrl_edit_filepath.SetFont(&font, 1);
 
@@ -166,9 +179,16 @@ void CMainFrameClient::OnButtonClick_button_connect()
 
 }
 
+void CMainFrameClient::OnButtonClick_button_send()
+{
+	CString sendString;
+	ctrl_edit_chatinput.GetWindowText(sendString);
+	mySocket.Send(sendString);
+}
+
 void CMainFrameClient::OnSizing(UINT nType, LPRECT newsize)
 {
-	constexpr int percentPadHorizontal = 2;
+	constexpr int percentPadHorizontal = 1;
 	constexpr int percentPadVertical = 3;
 	constexpr int percentButtonHeight = 8;
 
@@ -199,14 +219,26 @@ void CMainFrameClient::OnSizing(UINT nType, LPRECT newsize)
 	r = CRect(clientRect.left + clientRect.Width() * percentPadHorizontal / 100,
 		clientRect.top + clientRect.Height() * percentPadVertical * 4 / 100 + clientRect.Height() * percentButtonHeight * 2 / 100 + clientRect.Height() * 8 / 100,
 		clientRect.right - clientRect.Width() * percentPadHorizontal / 100,
-		clientRect.bottom - clientRect.Height() * percentPadVertical / 100);
+		clientRect.bottom - clientRect.Height() * percentPadVertical * 2 / 100 - clientRect.Height() * percentButtonHeight / 100),
 
-	ctrl_list_foundfile.SetWindowPos(0, r.left, r.top, r.Width(), r.Height(), 0);
+	ctrl_edit_chatbox.SetWindowPos(0, r.left, r.top, r.Width(), r.Height(), 0);
+
+	r = CRect(clientRect.left + clientRect.Width() * percentPadHorizontal / 100,
+		clientRect.bottom - clientRect.Height() * percentPadVertical / 100 - clientRect.Height() * percentButtonHeight / 100,
+		clientRect.right - clientRect.Width() * percentPadHorizontal / 100 - clientRect.Width() * 2 * percentPadHorizontal / 100 - clientRect.Width() * 5 / 100,
+		clientRect.bottom - clientRect.Height() * percentPadVertical / 100);
+	ctrl_edit_chatinput.SetWindowPos(0, r.left, r.top, r.Width(), r.Height(), 0);
+
+	r = CRect(clientRect.right - clientRect.Width() * percentPadHorizontal / 100 - clientRect.Width() * percentPadHorizontal / 100 - clientRect.Width() * 5 / 100,
+		clientRect.bottom - clientRect.Height() * percentPadVertical / 100 - clientRect.Height() * percentButtonHeight / 100,
+		clientRect.right - clientRect.Width() * percentPadHorizontal / 100,
+		clientRect.bottom - clientRect.Height() * percentPadVertical / 100);
+	ctrl_button_send.SetWindowPos(0, r.left, r.top, r.Width(), r.Height(), 0);
 }
 
 void CMainFrameClient::OnSize(UINT nType, int cx, int cy)
 {
-	constexpr int percentPadHorizontal = 2;
+	constexpr int percentPadHorizontal = 1;
 	constexpr int percentPadVertical = 3;
 	constexpr int percentButtonHeight = 8;
 
@@ -237,9 +269,21 @@ void CMainFrameClient::OnSize(UINT nType, int cx, int cy)
 	r = CRect(clientRect.left + clientRect.Width() * percentPadHorizontal / 100,
 		clientRect.top + clientRect.Height() * percentPadVertical * 4 / 100 + clientRect.Height() * percentButtonHeight * 2 / 100 + clientRect.Height() * 8 / 100,
 		clientRect.right - clientRect.Width() * percentPadHorizontal / 100,
-		clientRect.bottom - clientRect.Height() * percentPadVertical / 100);
+		clientRect.bottom - clientRect.Height() * percentPadVertical * 2 / 100 - clientRect.Height() * percentButtonHeight / 100),
 
-	ctrl_list_foundfile.SetWindowPos(0, r.left, r.top, r.Width(), r.Height(), 0);
+		ctrl_edit_chatbox.SetWindowPos(0, r.left, r.top, r.Width(), r.Height(), 0);
+
+	r = CRect(clientRect.left + clientRect.Width() * percentPadHorizontal / 100,
+		clientRect.bottom - clientRect.Height() * percentPadVertical / 100 - clientRect.Height() * percentButtonHeight / 100,
+		clientRect.right - clientRect.Width() * percentPadHorizontal / 100 - clientRect.Width() * 2 * percentPadHorizontal / 100 - clientRect.Width() * 5 / 100,
+		clientRect.bottom - clientRect.Height() * percentPadVertical / 100);
+	ctrl_edit_chatinput.SetWindowPos(0, r.left, r.top, r.Width(), r.Height(), 0);
+
+	r = CRect(clientRect.right - clientRect.Width() * percentPadHorizontal / 100 - clientRect.Width() * percentPadHorizontal / 100 - clientRect.Width() * 5 / 100,
+		clientRect.bottom - clientRect.Height() * percentPadVertical / 100 - clientRect.Height() * percentButtonHeight / 100,
+		clientRect.right - clientRect.Width() * percentPadHorizontal / 100,
+		clientRect.bottom - clientRect.Height() * percentPadVertical / 100);
+	ctrl_button_send.SetWindowPos(0, r.left, r.top, r.Width(), r.Height(), 0);
 }
 
 void CMainFrameClient::OnGetMinMaxInfo(MINMAXINFO* lpMMI)
@@ -247,4 +291,5 @@ void CMainFrameClient::OnGetMinMaxInfo(MINMAXINFO* lpMMI)
 	lpMMI->ptMinTrackSize.x = 636;
 	lpMMI->ptMinTrackSize.y = 404;
 }
+
 

@@ -49,9 +49,9 @@ void ServerSocket::OnAccept(int nErrorCode)
 
 void ServerSocket::OnReceive(int nErrorCode)
 {
-	CSocket::OnReceive(nErrorCode);
+	//CSocket::OnReceive(nErrorCode);
 	CSocketFile cFile(this);
-	CArchive cArchive(&cFile, CArchive::store);
+	CArchive cArchive(&cFile, CArchive::load);
 	CString recvString;
 	cArchive >> recvString;
 	::MessageBox(NULL, recvString, _T("Your message!"), MB_OK);
@@ -61,9 +61,12 @@ void ServerSocket::Close()
 {
 	for(int i = 0; i < clientCount; i++)
 	{
+		if (clientList[i] == INVALID_SOCKET)
+		{
+			continue;
+		}
 		auto clientSock = FromHandle(clientList[i]);
 		clientSock->Close();
-		clientSock->Detach();
 		clientList[i] = INVALID_SOCKET;
 	}
 	clientCount = 0;
