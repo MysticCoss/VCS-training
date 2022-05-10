@@ -44,17 +44,17 @@ void ServerSocket::OnAccept(int nErrorCode)
 		CString ipAddress((LPCSTR)ipStr);
 		myMaster->OnAccept(ipAddress, inaddr_ptr->sin_port);
 	}
-	CSocket::OnAccept(nErrorCode);
+	CAsyncSocket::OnAccept(nErrorCode);
 }
 
 void ServerSocket::OnReceive(int nErrorCode)
 {
 	//CSocket::OnReceive(nErrorCode);
-	CSocketFile cFile(this);
-	CArchive cArchive(&cFile, CArchive::load);
-	CString recvString;
-	cArchive >> recvString;
-	::MessageBox(NULL, recvString, _T("Your message!"), MB_OK);
+	//CSocketFile cFile(this);
+	//CArchive cArchive(&cFile, CArchive::load);
+	//CString recvString;
+	//cArchive >> recvString;
+	::MessageBox(NULL, _T("Your message!"), _T("Your message!"), MB_OK);
 }
 
 void ServerSocket::Close()
@@ -70,5 +70,5 @@ void ServerSocket::Close()
 		clientList[i] = INVALID_SOCKET;
 	}
 	clientCount = 0;
-	CSocket::Close();
+	CAsyncSocket::Close();
 }

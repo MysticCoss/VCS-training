@@ -192,7 +192,7 @@ void CMainFrameServer::OnButtonClick_button_start()
 
 	auto port = StrToInt(portStr);
 	
-	if (!mySock.Create(port, SOCK_STREAM, host))
+	if (!mySock.Create(port, SOCK_STREAM, FD_READ | FD_WRITE | FD_OOB | FD_ACCEPT | FD_CONNECT | FD_CLOSE,host))
 	{
 		::MessageBox(NULL, _T("Failed to create socket"), _T("Error"), MB_OK | MB_ICONERROR);
 		return;
