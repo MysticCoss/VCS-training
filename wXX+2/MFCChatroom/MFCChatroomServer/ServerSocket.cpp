@@ -1,12 +1,17 @@
 #include "ServerSocket.h"
 
-SOCKET ServerSocket::clientList[100];
+ClientSocket* ServerSocket::clientList[100];
 int ServerSocket::clientCount = 0;
 
-//void ServerSocket::Initt(CMainFrameServer* master)
-//{
-//	myMaster = master;
-//}
+
+ServerSocket::ServerSocket() : CSocket()
+{
+	for(int i=0;i<100;i++)
+	{
+		clientList[i] = new ClientSocket();
+	}
+	
+}
 
 void ServerSocket::SetListener(IListener* master)
 {
@@ -15,11 +20,10 @@ void ServerSocket::SetListener(IListener* master)
 
 void ServerSocket::OnAccept(int nErrorCode)
 {
-	CSocket* m_Client = new CSocket;
-	m_Client->m_hSocket = INVALID_SOCKET;
+	clientList[clientCount]->m_hSocket = INVALID_SOCKET;
 	SOCKADDR thisSockAddr;
 	int thisSockAddrLen = sizeof(SOCKADDR);
-	if(!Accept(*m_Client,&thisSockAddr,&thisSockAddrLen))
+	if(!Accept(*clientList[clientCount],&thisSockAddr,&thisSockAddrLen))
 	{
 		CString info = _T("");
 		info.Format(_T("Error accepting client connection with error code: %d"), GetLastError());
@@ -28,7 +32,7 @@ void ServerSocket::OnAccept(int nErrorCode)
 	else
 	{
 		struct sockaddr_in* inaddr_ptr = NULL;
-		clientList[clientCount++] = m_Client->m_hSocket;
+		//clientList[clientCount++] = m_Client->m_hSocket;
 		if (thisSockAddr.sa_family == AF_INET)
 		{
 			inaddr_ptr = (struct sockaddr_in*)&thisSockAddr;
@@ -44,30 +48,31 @@ void ServerSocket::OnAccept(int nErrorCode)
 		CString ipAddress((LPCSTR)ipStr);
 		myMaster->OnAccept(ipAddress, inaddr_ptr->sin_port);
 	}
-	CAsyncSocket::OnAccept(nErrorCode);
+	clientCount++;
+	//CSocket::OnAccept(nErrorCode);
 }
 
 void ServerSocket::OnReceive(int nErrorCode)
 {
-	//CSocket::OnReceive(nErrorCode);
-	//CSocketFile cFile(this);
-	//CArchive cArchive(&cFile, CArchive::load);
-	//CString recvString;
-	//cArchive >> recvString;
-	::MessageBox(NULL, _T("Your message!"), _T("Your message!"), MB_OK);
+	CSocketFile cFile(this);
+	CArchive cArchive(&cFile, CArchive::load);
+	CString recvString;
+	cArchive >> recvString;
+	::MessageBox(NULL, recvString, _T("Your message!"), MB_OK);
 }
 
 void ServerSocket::Close()
 {
 	for(int i = 0; i < clientCount; i++)
 	{
-		if (clientList[i] == INVALID_SOCKET)
+		if (clientList[i]->m_hSocket == INVALID_SOCKET)
 		{
 			continue;
 		}
-		auto clientSock = FromHandle(clientList[i]);
-		clientSock->Close();
-		clientList[i] = INVALID_SOCKET;
+		//auto clientSock = FromHandle(clientList[i]);
+
+		clientList[i]->Close();
+		delete clientList[i];
 	}
 	clientCount = 0;
 	CAsyncSocket::Close();
