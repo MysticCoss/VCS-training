@@ -4,10 +4,14 @@ void ClientSocket::OnReceive(int nErrorCode)
 {
 	CSocketFile cFile(this);
 	CArchive cArchive(&cFile, CArchive::load);
-	CString recvString = _T("");
+	//CString recvString = _T("");
 	auto a = cArchive.IsBufferEmpty();
-	DWORD num;
+	DWORD num=0;
+	
 	IOCtl(FIONREAD, &num);
+	auto buffer = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, num);
+	Receive(buffer, num, 0);
+	CString recvString((LPSTR)buffer);
 	while(!cArchive.IsBufferEmpty())
 	{
 		CString eyyy;
