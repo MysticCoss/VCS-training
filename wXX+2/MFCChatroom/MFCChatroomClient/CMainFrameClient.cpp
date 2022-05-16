@@ -1,6 +1,5 @@
 #include "CMainFrameClient.h"
 #include <Windows.h>
-#include <ws2tcpip.h>
 //BOOL CListCtrlEx::OnEraseBkgnd(CDC* pDC)
 //{
 //	return false;

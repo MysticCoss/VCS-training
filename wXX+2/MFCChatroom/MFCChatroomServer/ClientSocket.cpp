@@ -12,6 +12,8 @@ void ClientSocket::OnReceive(int nErrorCode)
 	auto buffer = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, num);
 	Receive(buffer, num, 0);
 	CString recvString((LPSTR)buffer);
+	auto jreceive = nlohmann::json::parse(recvString);
+
 	while(!cArchive.IsBufferEmpty())
 	{
 		CString eyyy;
