@@ -1,0 +1,4 @@
+﻿  MFCProcessViewer.cpp
+D:\Computer Vault\VCS-training\wXX+1\MFCFileScanner\MFCProcessViewer.cpp(215,91): warning C4244: 'argument': conversion from 'double' to 'int', possible loss of data
+D:\Computer Vault\VCS-training\wXX+1\MFCFileScanner\MFCProcessViewer.cpp(216,109): warning C4244: 'argument': conversion from 'double' to 'int', possible loss of data
+  MFCFileScanner.vcxproj -> D:\Computer Vault\VCS-training\wXX+1\MFCFileScanner\x64\Debug\MFCProcessViewer.exe

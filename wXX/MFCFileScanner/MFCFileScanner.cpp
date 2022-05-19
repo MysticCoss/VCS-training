@@ -203,10 +203,10 @@ int CSimpleWindow::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		SHFormatDateTime(&dateCreated, NULL, (LPSTR)buffer, 1024);
 		dateCreatedString = CString((LPSTR)buffer);
 #endif
-		int subItemCount = 0;
-
 		
 		CString insertStr;
+
+		int subItemCount = 0;
 		lvi.mask = LVIF_TEXT;
 		lvi.iItem = count++;
 		lvi.iSubItem = subItemCount++;
