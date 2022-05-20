@@ -1,9 +1,9 @@
 ﻿  MFCProcessViewer.cpp
-D:\Computer Vault\VCS-training\wXX+1\MFCProcessViewer\MFCProcessViewer.cpp(215,91): warning C4244: 'argument': conversion from 'double' to 'int', possible loss of data
-D:\Computer Vault\VCS-training\wXX+1\MFCProcessViewer\MFCProcessViewer.cpp(216,109): warning C4244: 'argument': conversion from 'double' to 'int', possible loss of data
+C:\Users\Surface\OneDrive - Hanoi University of Science and Technology\Documents\GitHub\VCS-training\wXX+1\MFCProcessViewer\MFCProcessViewer.cpp(215,89): warning C4244: 'argument': conversion from 'double' to 'int', possible loss of data
+C:\Users\Surface\OneDrive - Hanoi University of Science and Technology\Documents\GitHub\VCS-training\wXX+1\MFCProcessViewer\MFCProcessViewer.cpp(216,107): warning C4244: 'argument': conversion from 'double' to 'int', possible loss of data
   Generating code
   207 of 209 functions (99.0%) were compiled, the rest were copied from previous compilation.
     32 functions were new in current compilation
     0 functions had inline decision re-evaluated but remain unchanged
   Finished generating code
-  MFCProcessViewer.vcxproj -> D:\Computer Vault\VCS-training\wXX+1\MFCProcessViewer\x64\Release\MFCProcessViewer.exe
+  MFCProcessViewer.vcxproj -> C:\Users\Surface\OneDrive - Hanoi University of Science and Technology\Documents\GitHub\VCS-training\wXX+1\MFCProcessViewer\x64\Release\MFCProcessViewer.exe
