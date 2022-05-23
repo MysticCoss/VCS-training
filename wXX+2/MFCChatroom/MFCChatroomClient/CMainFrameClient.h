@@ -2,21 +2,23 @@
 #include "framework.h"
 #include "ClientSocket.h"
 #include <Windows.h>
-#include <nlohmann/json.hpp>
 #include "CEditEx.h"
 #include "IListener.h"
 
 class CMainFrameClient : public CFrameWnd, public IListener
 {
 private:
-	CEdit ctrl_edit_filepath;
-	UINT id_ctrl_edit_filepath = 0;
+	CEdit ctrl_edit_address;
+	UINT id_ctrl_edit_address = 0;
 
-	CEdit ctrl_edit_filename;
-	UINT id_ctrl_edit_filename = 1;
+	CEdit ctrl_edit_port;
+	UINT id_ctrl_edit_port = 1;
 
-	CButton ctrl_button_search;
-	UINT id_ctrl_button_search = 2;
+	CButton ctrl_button_connect;
+	UINT id_ctrl_button_connect = 2;
+
+	CButton ctrl_button_disconnect;
+	UINT id_ctrl_button_disconnect = 6;
 
 	CFont font;
 
@@ -32,11 +34,13 @@ private:
 	ClientSocket mySocket;
 public:
 	CMainFrameClient();
-	void Append(CString newtext) override;
+	void AppendLine(CString newtext) override;
 protected:
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
 	void OnButtonClick_button_connect();
+	void OnButtonClick_button_disconnect();
 	void OnButtonClick_button_send();
+	void Cleanup() override;
 	afx_msg void OnSizing(UINT nType, LPRECT newsize);
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	afx_msg void OnGetMinMaxInfo(MINMAXINFO* lpMMI);

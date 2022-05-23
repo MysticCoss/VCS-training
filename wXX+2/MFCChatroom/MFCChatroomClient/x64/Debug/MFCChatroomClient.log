@@ -1,6 +1,2 @@
 ﻿  CMainFrameClient.cpp
-  ClientSocket.cpp
-  IListener.cpp
-  MFCChatroomClient.cpp
-  Generating Code...
-  MFCChatroomClient.vcxproj -> D:\Computer Vault\VCS-training\wXX+2\MFCChatroom\x64\Debug\MFCChatroomClient.exe
+  MFCChatroomClient.vcxproj -> C:\Users\whoisyourdaddy\Documents\GitHub\VCS-training\wXX+2\MFCChatroom\x64\Debug\MFCChatroomClient.exe

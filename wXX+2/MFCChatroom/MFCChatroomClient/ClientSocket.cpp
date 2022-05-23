@@ -5,6 +5,14 @@ void ClientSocket::setListener(IListener* listener)
 	myMaster = listener;
 }
 
+void ClientSocket::Cleanup()
+{
+	clientname.Empty();
+	m_hSocket = INVALID_SOCKET;
+	myMaster->Cleanup();
+}
+
+
 void ClientSocket::OnReceive(int nErrorCode)
 {
 	DWORD num = 0;
@@ -18,7 +26,19 @@ void ClientSocket::OnReceive(int nErrorCode)
 		//client hello packet
 		clientname = receivStr.Right(receivStr.GetLength() - 6);
 		//Print notification
-		CString ps = _T("Client ") + clientname + _T(" connected to server\n");
-		myMaster->Append(ps);
+		CString ps = _T("Client \"") + clientname + _T("\" connected to server");
+		myMaster->AppendLine(ps);
+	}
+	else if (receivStr == _T("bye"))
+	{
+		//handle client bye message
+		Close();
+		Cleanup();
+		myMaster->AppendLine(_T("Server disconnected"));
+	}
+	else
+	{
+		receivStr += _T("\n");
+		myMaster->AppendLine(receivStr);
 	}
 }

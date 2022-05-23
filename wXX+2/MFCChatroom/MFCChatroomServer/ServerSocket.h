@@ -10,6 +10,7 @@ private:
 public:
 	ServerSocket();
 	static ClientSocket* clientList[100];
+	static bool available[100];
 	static int clientCount;
 	void SetListener(IListener* master);
 	void Close() override;

@@ -35,10 +35,10 @@ protected:
 	void OnButtonClick_button_start();
 	void OnButtonClick_button_stop();
 	void OnAccept(CString ipAddress, USHORT port) override;
-	void OnReceive() override;
+	void OnReceive(CString echoString) override;
+	void OnClientDisconnect(CString address, USHORT port) override;
 	afx_msg void OnSizing(UINT nType, LPRECT newsize);
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	afx_msg void OnGetMinMaxInfo(MINMAXINFO* lpMMI);
 	DECLARE_MESSAGE_MAP()
 };
-

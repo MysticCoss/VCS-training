@@ -3,6 +3,7 @@
 class IListener
 {
 public:
-	virtual void Append(CString newtext) = 0;
+	virtual void AppendLine(CString newtext) = 0;
+	virtual void Cleanup() = 0;
 };
 

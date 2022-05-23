@@ -13,12 +13,6 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="Header Files\Message">
-      <UniqueIdentifier>{3ceed2af-f72a-49a0-b8de-f296bf3941c5}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\Message">
-      <UniqueIdentifier>{8a550245-a046-41d2-9505-cf17ba277052}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MFCChatroomClient.h">
@@ -42,15 +36,6 @@
     <ClInclude Include="ClientSocket.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="MessageClientHello.h">
-      <Filter>Header Files\Message</Filter>
-    </ClInclude>
-    <ClInclude Include="IMessage.h">
-      <Filter>Header Files\Message</Filter>
-    </ClInclude>
-    <ClInclude Include="JsonConversion.h">
-      <Filter>Header Files\Message</Filter>
-    </ClInclude>
     <ClInclude Include="CEditEx.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -70,12 +55,6 @@
     </ClCompile>
     <ClCompile Include="ClientSocket.cpp">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="MessageClientHello.cpp">
-      <Filter>Source Files\Message</Filter>
-    </ClCompile>
-    <ClCompile Include="IMessage.cpp">
-      <Filter>Source Files\Message</Filter>
     </ClCompile>
     <ClCompile Include="CEditEx.cpp">
       <Filter>Source Files</Filter>

@@ -3,6 +3,6 @@
 class CEditEx : public CEdit
 {
 public:
-	void Append(CString newString);
+	void AppendLine(CString newString);
 };
 

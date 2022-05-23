@@ -2,6 +2,7 @@
 
 ClientSocket* ServerSocket::clientList[100];
 int ServerSocket::clientCount = 0;
+bool ServerSocket::available[100];
 
 
 ServerSocket::ServerSocket() : CSocket()
@@ -9,6 +10,8 @@ ServerSocket::ServerSocket() : CSocket()
 	for(int i=0;i<100;i++)
 	{
 		clientList[i] = new ClientSocket();
+		clientList[i]->m_hSocket = INVALID_SOCKET;
+		available[i] = true;
 	}
 	
 }
@@ -20,10 +23,19 @@ void ServerSocket::SetListener(IListener* master)
 
 void ServerSocket::OnAccept(int nErrorCode)
 {
-	clientList[clientCount]->m_hSocket = INVALID_SOCKET;
+	//find a free socket
+	int i = 0;
+	for (;i<100;i++)
+	{
+		if (clientList[i]->m_hSocket == INVALID_SOCKET)
+		{
+			break;
+		}
+	}
+
 	SOCKADDR thisSockAddr;
 	int thisSockAddrLen = sizeof(SOCKADDR);
-	if(!Accept(*clientList[clientCount],&thisSockAddr,&thisSockAddrLen))
+	if(!Accept(*clientList[i],&thisSockAddr,&thisSockAddrLen))
 	{
 		CString info = _T("");
 		info.Format(_T("Error accepting client connection with error code: %d"), GetLastError());
@@ -46,10 +58,17 @@ void ServerSocket::OnAccept(int nErrorCode)
 		auto ipStr = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 32);
 		inet_ntop(AF_INET, (void*)&(inaddr_ptr->sin_addr), (PSTR)ipStr, 32);
 		CString ipAddress((LPCSTR)ipStr);
-		myMaster->OnAccept(ipAddress, inaddr_ptr->sin_port);
+		auto port = inaddr_ptr->sin_port;
+		clientList[i]->address = ipAddress;
+		clientList[i]->port = port;
+		clientList[i]->setListener(myMaster);
+
+		clientCount++;
+		clientCount = clientCount % 100;
+
+		myMaster->OnAccept(ipAddress, port);
 	}
-	clientCount++;
-	//CSocket::OnAccept(nErrorCode);
+	CSocket::OnAccept(nErrorCode);
 }
 
 void ServerSocket::OnReceive(int nErrorCode)

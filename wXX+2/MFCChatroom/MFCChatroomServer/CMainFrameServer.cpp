@@ -64,9 +64,9 @@ void CMainFrameServer::OnAccept(CString ipAddress, USHORT port)
 	CString numStr, portStr;
 	LVITEM lvi;
 	lvi.mask = LVIF_TEXT;
-	lvi.iItem = mySock.clientCount-1;
+	lvi.iItem = ctrl_list_connectedclient.GetItemCount();
 	lvi.iSubItem = subItemCount++;
-	numStr.Format(_T("%d"), mySock.clientCount);
+	numStr.Format(_T("%d"), ctrl_list_connectedclient.GetItemCount()+1);
 	lvi.pszText = (LPWSTR)(LPCTSTR)numStr;
 	ctrl_list_connectedclient.InsertItem(&lvi);
 
@@ -80,9 +80,34 @@ void CMainFrameServer::OnAccept(CString ipAddress, USHORT port)
 	ctrl_list_connectedclient.SetItem(&lvi);
 }
 
-void CMainFrameServer::OnReceive()
+void CMainFrameServer::OnReceive(CString echoString)
 {
-	return;
+	echoString = echoString.Trim();
+	for (int i = 0; i < 100; i++)
+	{
+		if (mySock.clientList[i]->m_hSocket != INVALID_SOCKET)
+		{
+			mySock.clientList[i]->Send(echoString, echoString.GetLength() * 2);
+		}
+	}
+}
+
+void CMainFrameServer::OnClientDisconnect(CString address, USHORT port)
+{
+	LVFINDINFO info;
+	int nIndex;
+
+	//info.flags = LVFI_STRING;
+	//info.psz =  _T("1");
+
+	CString portStr;
+	portStr.Format(_T("%d"), port);
+
+	// Delete all of the items that begin with the string.
+	while ((nIndex = ctrl_list_connectedclient.FindItem(address, portStr)) != -1)
+	{
+		ctrl_list_connectedclient.DeleteItem(nIndex);
+	}
 }
 
 int CMainFrameServer::OnCreate(LPCREATESTRUCT lpCreateStruct)
@@ -214,6 +239,25 @@ void CMainFrameServer::OnButtonClick_button_start()
 
 void CMainFrameServer::OnButtonClick_button_stop()
 {
+	for (int i = 0; i < 100; i++)
+	{
+		if (mySock.clientList[i]->m_hSocket!=INVALID_SOCKET)
+		{
+			CString bye = _T("bye");
+			mySock.clientList[i]->Send(bye, bye.GetLength() * 2);
+		}
+	}
+
+	for (int i = 0; i < 100; i++)
+	{
+		if (mySock.clientList[i]->m_hSocket != INVALID_SOCKET)
+		{
+			mySock.clientList[i]->Close();
+			mySock.clientList[i]->m_hSocket = INVALID_SOCKET;
+		}
+		mySock.clientList[i]->name.Empty();
+	}
+
 	mySock.Close();
 	ctrl_list_connectedclient.DeleteAllItems();
 	if (ctrl_button_stop.IsWindowVisible())
@@ -255,6 +299,7 @@ void CMainFrameServer::OnSizing(UINT nType, LPRECT newsize)
 		ServerRect.top + ServerRect.Height() * percentPadVertical * 3 / 100 + ServerRect.Height() * percentButtonHeight * 2 / 100 + ServerRect.Height() * 8 / 100);
 
 	ctrl_button_start.SetWindowPos(0, r.left, r.top, r.Width(), r.Height(), 0);
+	ctrl_button_stop.SetWindowPos(0, r.left, r.top, r.Width(), r.Height(), 0);
 
 	r = CRect(ServerRect.left + ServerRect.Width() * percentPadHorizontal / 100,
 		ServerRect.top + ServerRect.Height() * percentPadVertical * 4 / 100 + ServerRect.Height() * percentButtonHeight * 2 / 100 + ServerRect.Height() * 8 / 100,
@@ -293,6 +338,7 @@ void CMainFrameServer::OnSize(UINT nType, int cx, int cy)
 		ServerRect.top + ServerRect.Height() * percentPadVertical * 3 / 100 + ServerRect.Height() * percentButtonHeight * 2 / 100 + ServerRect.Height() * 8 / 100);
 
 	ctrl_button_start.SetWindowPos(0, r.left, r.top, r.Width(), r.Height(), 0);
+	ctrl_button_stop.SetWindowPos(0, r.left, r.top, r.Width(), r.Height(), 0);
 
 	r = CRect(ServerRect.left + ServerRect.Width() * percentPadHorizontal / 100,
 		ServerRect.top + ServerRect.Height() * percentPadVertical * 4 / 100 + ServerRect.Height() * percentButtonHeight * 2 / 100 + ServerRect.Height() * 8 / 100,
