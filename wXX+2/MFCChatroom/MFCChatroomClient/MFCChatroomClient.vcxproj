@@ -184,18 +184,27 @@
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="CEditEx.h" />
     <ClInclude Include="ClientSocket.h" />
     <ClInclude Include="CListCtrlEx.h" />
     <ClInclude Include="CMainFrameClient.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="IListener.h" />
+    <ClInclude Include="IMessage.h" />
+    <ClInclude Include="JsonConversion.h" />
+    <ClInclude Include="MessageClientHello.h" />
     <ClInclude Include="MFCChatroomClient.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="CEditEx.cpp" />
     <ClCompile Include="ClientSocket.cpp" />
     <ClCompile Include="CListCtrlEx.cpp" />
     <ClCompile Include="CMainFrameClient.cpp" />
+    <ClCompile Include="IListener.cpp" />
+    <ClCompile Include="IMessage.cpp" />
+    <ClCompile Include="MessageClientHello.cpp" />
     <ClCompile Include="MFCChatroomClient.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

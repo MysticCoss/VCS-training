@@ -1,5 +1,6 @@
 ﻿#include "ClientSocket.h"
 
+
 void ClientSocket::OnReceive(int nErrorCode)
 {
 	CSocketFile cFile(this);
@@ -11,15 +12,14 @@ void ClientSocket::OnReceive(int nErrorCode)
 	IOCtl(FIONREAD, &num);
 	auto buffer = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, num);
 	Receive(buffer, num, 0);
-	CString recvString((LPSTR)buffer);
-	auto jreceive = nlohmann::json::parse(recvString);
-
-	while(!cArchive.IsBufferEmpty())
+	CString recvString((LPWSTR)buffer);
+	if (recvString == _T("hello") && name.IsEmpty())
 	{
-		CString eyyy;
-		cArchive >> eyyy;
-		recvString.Append(eyyy);
+		//assign client name
+		auto a = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+		name.Format(_T("hello client_%ld"), a);
+		this->Send(name, name.GetLength()*2);
 	}
-	::MessageBox(NULL, recvString, _T("Your message!"), MB_OK);
+	::MessageBox(NULL, recvString, _T("Your message from client"), MB_OK);
 	CSocket::OnReceive(nErrorCode);
 }

@@ -1,5 +1,5 @@
 #include "CMainFrameClient.h"
-#include <Windows.h>
+
 //BOOL CListCtrlEx::OnEraseBkgnd(CDC* pDC)
 //{
 //	return false;
@@ -54,6 +54,11 @@ CMainFrameClient::CMainFrameClient()
 		0,
 		0,
 		0);
+}
+
+void CMainFrameClient::Append(CString newtext)
+{
+	ctrl_edit_chatbox.Append(newtext);
 }
 
 int CMainFrameClient::OnCreate(LPCREATESTRUCT lpCreateStruct)
@@ -142,6 +147,9 @@ int CMainFrameClient::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 void CMainFrameClient::OnButtonClick_button_connect()
 {
+	//Register for callback convenient or direct method call
+	mySocket.setListener(this);
+
 	//Get info from edit box
 	CString host = _T(""), portStr = _T("");
 	ctrl_edit_filepath.GetWindowText(host);
@@ -176,13 +184,18 @@ void CMainFrameClient::OnButtonClick_button_connect()
 		return;
 	}
 
+	//Client hello
+	CString _4n0ther_sup3rs3cre1 = _T("hello");
+	auto a = _4n0ther_sup3rs3cre1.GetLength();
+	mySocket.Send(_4n0ther_sup3rs3cre1,_4n0ther_sup3rs3cre1.GetLength()*2);
 }
 
 void CMainFrameClient::OnButtonClick_button_send()
 {
 	CString sendString;
 	ctrl_edit_chatinput.GetWindowText(sendString);
-	mySocket.Send(sendString);
+	mySocket.Send(sendString,sendString.GetLength()*2);
+	ctrl_edit_chatinput.SetWindowText(_T(""));
 }
 
 void CMainFrameClient::OnSizing(UINT nType, LPRECT newsize)

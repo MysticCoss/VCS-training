@@ -1,8 +1,13 @@
 #pragma once
-#include <afxsock.h>
+#include "framework.h"
+#include "IListener.h"
+
 class ClientSocket : public CSocket
 {
 public:
-	void Send(CString sendString);
+	IListener* myMaster;
+	CString clientname;
+	void OnReceive(int nErrorCode) override;
+	void setListener(IListener* listener);
 };
 

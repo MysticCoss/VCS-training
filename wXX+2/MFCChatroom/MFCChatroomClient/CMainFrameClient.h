@@ -1,9 +1,12 @@
 #pragma once
-#include "CListCtrlEx.h"
 #include "framework.h"
 #include "ClientSocket.h"
+#include <Windows.h>
+#include <nlohmann/json.hpp>
+#include "CEditEx.h"
+#include "IListener.h"
 
-class CMainFrameClient : public CFrameWnd, public CSocket
+class CMainFrameClient : public CFrameWnd, public IListener
 {
 private:
 	CEdit ctrl_edit_filepath;
@@ -17,7 +20,7 @@ private:
 
 	CFont font;
 
-	CEdit ctrl_edit_chatbox;
+	CEditEx ctrl_edit_chatbox;
 	UINT id_ctrl_edit_chatbox = 3;
 
 	CEdit ctrl_edit_chatinput;
@@ -29,6 +32,7 @@ private:
 	ClientSocket mySocket;
 public:
 	CMainFrameClient();
+	void Append(CString newtext) override;
 protected:
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
 	void OnButtonClick_button_connect();

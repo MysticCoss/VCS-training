@@ -1,7 +1,6 @@
-﻿  ClientSocket.cpp
-  _WIN32_WINNT not defined. Defaulting to _WIN32_WINNT_MAXVER (see WinSDKVer.h)
-  CListCtrlEx.cpp
-  CMainFrameClient.cpp
+﻿  CMainFrameClient.cpp
+  ClientSocket.cpp
+  IListener.cpp
   MFCChatroomClient.cpp
   Generating Code...
   MFCChatroomClient.vcxproj -> D:\Computer Vault\VCS-training\wXX+2\MFCChatroom\x64\Debug\MFCChatroomClient.exe

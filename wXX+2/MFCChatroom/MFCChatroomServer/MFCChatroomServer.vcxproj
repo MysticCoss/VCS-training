@@ -188,6 +188,7 @@
     <ClInclude Include="CMainFrameServer.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="IListener.h" />
+    <ClInclude Include="IMessage.h" />
     <ClInclude Include="MFCChatroomServer.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="ServerSocket.h" />
@@ -197,6 +198,7 @@
     <ClCompile Include="ClientSocket.cpp" />
     <ClCompile Include="CListCtrlEx.cpp" />
     <ClCompile Include="CMainFrameServer.cpp" />
+    <ClCompile Include="IMessage.cpp" />
     <ClCompile Include="MFCChatroomServer.cpp" />
     <ClCompile Include="ServerSocket.cpp" />
   </ItemGroup>

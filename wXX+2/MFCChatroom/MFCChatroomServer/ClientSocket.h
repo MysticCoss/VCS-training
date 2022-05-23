@@ -1,9 +1,10 @@
 ﻿#pragma once
 #include "framework.h"
-#include <nlohmann/json.hpp>
+#include <chrono>
 
 class ClientSocket : public CSocket
 {
 public:
+	CString name;
 	void OnReceive(int nErrorCode) override;
 };
