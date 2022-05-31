@@ -1,0 +1,13 @@
+﻿  Validating sources
+  Copying sources remotely
+  Starting remote build
+  Compiling sources:
+  main.cpp
+D:\Computer Vault\VCS-training\w18\LinuxEcho\LinuxEchoServer\main.cpp(37,33): warning : conversion from ‘int’ to ‘uint16_t’ {aka ‘short unsigned int’} may change value [-Wconversion]
+D:\Computer Vault\VCS-training\w18\LinuxEcho\LinuxEchoServer\main.cpp(37,33): warning :    37 |     server.sin_port = htons(atoi(argv[2]));
+D:\Computer Vault\VCS-training\w18\LinuxEcho\LinuxEchoServer\main.cpp(37,33): warning :       |                             ~~~~^~~~~~~~~
+D:\Computer Vault\VCS-training\w18\LinuxEcho\LinuxEchoServer\main.cpp(87,22): warning : conversion from ‘ssize_t’ {aka ‘long int’} to ‘int’ may change value [-Wconversion]
+D:\Computer Vault\VCS-training\w18\LinuxEcho\LinuxEchoServer\main.cpp(87,22): warning :    87 |         n_recv = recv(ClientSocket, buf, BUF_LEN, 0);
+D:\Computer Vault\VCS-training\w18\LinuxEcho\LinuxEchoServer\main.cpp(87,22): warning :       |                  ~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  Linking objects
+  LinuxEcho.vcxproj -> D:\Computer Vault\VCS-training\w18\LinuxEcho\LinuxEchoServer\bin\x64\Debug\LinuxEchoServer.out
