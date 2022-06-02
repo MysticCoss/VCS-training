@@ -6,6 +6,7 @@
 #include <afxwin.h>
 #include <Windows.h>
 #include <string>
+#include <vector>
 
 
 #include "resource.h"       // main symbols
@@ -46,6 +47,7 @@ public:
 	void SetupDynamicResize();
 protected:
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
+	//void ListDirectory(CString path, std::vector<CString>& a);
 	void OnButtonClick_button_search();
 	afx_msg void OnSizing(UINT nType, LPRECT newsize);
 	afx_msg void OnSize(UINT nType, int cx, int cy);

@@ -1,5 +1,9 @@
 ﻿#include "MFCFileScanner.h"
 
+#include <regex>
+#include <stack>
+#include <vector>
+
 BOOL CListCtrlEx::OnEraseBkgnd(CDC* pDC)
 {
 	return false;
@@ -121,137 +125,192 @@ int CSimpleWindow::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	return 0;
 }
 
+//	void CSimpleWindow::ListDirectory(CString path, std::vector<CString>& a)
+//{
+//		//recursive finding
+//		CString tmpStr = path + _T("\\*");
+//
+//		auto hFind = FindFirstFile(tmpStr, &ffd);
+//
+//		std::vector<CString> directories;
+//
+//		if (hFind != INVALID_HANDLE_VALUE)
+//		{
+//			do
+//			{
+//				if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) //yes it's a directory
+//				{
+//					if ((!lstrcmp(ffd.cFileName, _T("."))) || (!lstrcmp(ffd.cFileName, _T("..")))) //skip . and ..
+//						continue;
+//				}
+//
+//			} while (FindNextFileW(hFind, &ffd));
+//		}
+//}
+
 	void CSimpleWindow::OnButtonClick_button_search()
 {
 	CString searchPath = _T("");
 
-	CString searcFileName = _T("");
+	CString searchFileName = _T("");
 
 	ctrl_edit_filepath.GetWindowText(searchPath);
 	if (searchPath.IsEmpty()) {
 		searchPath = _T("C:");
 	}
 
-	ctrl_edit_filename.GetWindowText(searcFileName);
+	ctrl_edit_filename.GetWindowText(searchFileName);
 
-	CString fullpath = searchPath + _T("\\") + searcFileName;
+	CString fullpath = searchPath + _T("\\") + searchFileName;
 
-	WIN32_FIND_DATA ffd;
+	//recursive finding
 
-	auto hFind = FindFirstFile(fullpath, &ffd);
-
-	auto nItem = 0;
+	std::vector<CString> directoriestosearch;
+	directoriestosearch.push_back(searchPath);
 
 	LVITEM lvi;
-	CString strItem;
-
-	if (INVALID_HANDLE_VALUE == hFind)
-	{
-		//TODO: Create Msgbox to notify about this error
-		return;
-	}
-
 	int count = 0;
+
 	ctrl_list_foundfile.SetRedraw(false);
 	ctrl_list_foundfile.DeleteAllItems();
-	do
+
+	while (!directoriestosearch.empty())
 	{
-		CString fileName = ffd.cFileName;
-
-		CString sizeString;
-
-		QWORD size = ffd.nFileSizeHigh;
-
-		size <<= 4;
-
-		size += ffd.nFileSizeLow;
-
-		sizeString.Format(_T("%llu bytes"), size);
-
-		if (!StrCmp(searchPath.Right(1), _T("\\")))
+		WIN32_FIND_DATA ffd;
+		CString currentFolder = directoriestosearch.back();
+		directoriestosearch.pop_back();
+		auto hFind = FindFirstFile(currentFolder + _T("\\*"), &ffd);
+		if (hFind != INVALID_HANDLE_VALUE)
 		{
-			searchPath.Truncate(searchPath.GetLength() - 1);
+			do
+			{
+				if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) //yes it's a directory
+				{
+					if ( !lstrcmp(ffd.cFileName, _T(".")) || !lstrcmp(ffd.cFileName, _T("..")) ) //skip . and ..
+						continue;
+					else
+					{
+						CString dir = CString(ffd.cFileName);
+						CString dirPath = currentFolder + _T("\\") + dir;
+						directoriestosearch.push_back(dirPath);
+					}
+				}
+				else //it's a file
+				{
+					//so we check it's name
+					CString fileName = ffd.cFileName;
+					CString fileNameLower = CString(fileName);
+					fileNameLower.MakeLower();
+					CString searchFileNameLower = CString(searchFileName);
+					searchFileNameLower.MakeLower();
+					if (fileNameLower.Find(searchFileNameLower) == -1) //not found
+					{
+						continue;
+					}
+
+					CString sizeString;
+
+					QWORD size = ffd.nFileSizeHigh;
+
+					size <<= 4;
+
+					size += ffd.nFileSizeLow;
+
+					sizeString.Format(_T("%llu bytes"), size);
+
+					if (!StrCmp(currentFolder.Right(1), _T("\\")))
+					{
+						currentFolder.Truncate(currentFolder.GetLength() - 1);
+					}
+
+					CString fullPath = currentFolder + _T("\\") + fileName;
+
+					CString dateModifiedString;
+
+					auto dateModified = ffd.ftLastWriteTime;
+
+					auto hHeap = GetProcessHeap();
+
+					auto buffer = HeapAlloc(hHeap, HEAP_ZERO_MEMORY, 1024);
+
+					assert(buffer != 0);
+#ifdef UNICODE
+					SHFormatDateTime(&dateModified, NULL, (LPWSTR)buffer, 512);
+					dateModifiedString = CString((LPWSTR)buffer);
+#else 
+					SHFormatDateTime(&dateModified, NULL, (LPSTR)buffer, 1024);
+					dateModifiedString = CString((LPSTR)buffer);
+#endif
+
+					memset(buffer, 0, 1024);
+
+					CString dateCreatedString;
+					auto dateCreated = ffd.ftCreationTime;
+#ifdef UNICODE
+					SHFormatDateTime(&dateCreated, NULL, (LPWSTR)buffer, 512);
+					dateCreatedString = CString((LPWSTR)buffer);
+#else 
+					SHFormatDateTime(&dateCreated, NULL, (LPSTR)buffer, 1024);
+					dateCreatedString = CString((LPSTR)buffer);
+#endif
+
+					CString insertStr;
+
+					int subItemCount = 0;
+					lvi.mask = LVIF_TEXT;
+					lvi.iItem = count++;
+					lvi.iSubItem = subItemCount++;
+#ifdef UNICODE
+					lvi.pszText = (LPWSTR)(LPCTSTR)fileName;
+#else
+					lvi.pszText = (LPCSTR)(LPCTSTR)fileName;
+#endif
+					ctrl_list_foundfile.InsertItem(&lvi);
+
+
+					lvi.iSubItem = subItemCount++;
+#ifdef UNICODE
+					lvi.pszText = (LPWSTR)(LPCTSTR)sizeString;
+#else
+					lvi.pszText = (LPCSTR)(LPCTSTR)sizeString;
+#endif
+					ctrl_list_foundfile.SetItem(&lvi);
+
+
+					lvi.iSubItem = subItemCount++;
+#ifdef UNICODE
+					lvi.pszText = (LPWSTR)(LPCTSTR)fullPath;
+#else
+					lvi.pszText = (LPCSTR)(LPCTSTR)fullPath;
+#endif
+					ctrl_list_foundfile.SetItem(&lvi);
+
+					lvi.iSubItem = subItemCount++;
+#ifdef UNICODE
+					lvi.pszText = (LPWSTR)(LPCTSTR)dateModifiedString;
+#else
+					lvi.pszText = (LPCSTR)(LPCTSTR)dateModifiedString;
+#endif
+					ctrl_list_foundfile.SetItem(&lvi);
+
+					lvi.iSubItem = subItemCount++;
+#ifdef UNICODE
+					lvi.pszText = (LPWSTR)(LPCTSTR)dateCreatedString;
+#else
+					lvi.pszText = (LPCSTR)(LPCTSTR)dateCreatedString;
+#endif
+					ctrl_list_foundfile.SetItem(&lvi);
+
+				}
+			} while (FindNextFileW(hFind, &ffd));
 		}
-
-		CString fullPath = searchPath + _T("\\") + fileName;
-
-		CString dateModifiedString;
-
-		auto dateModified = ffd.ftLastWriteTime;
-
-		auto hHeap = GetProcessHeap();
-
-		auto buffer = HeapAlloc(hHeap, HEAP_ZERO_MEMORY, 1024);
-
-		assert(buffer != 0);
-#ifdef UNICODE
-		SHFormatDateTime(&dateModified, NULL, (LPWSTR)buffer, 512);
-		dateModifiedString = CString((LPWSTR)buffer);
-#else 
-		SHFormatDateTime(&dateModified, NULL, (LPSTR)buffer, 1024);
-		dateModifiedString = CString((LPSTR)buffer);
-#endif
-
-		memset(buffer, 0, 1024);
-
-		CString dateCreatedString;
-		auto dateCreated = ffd.ftCreationTime;
-#ifdef UNICODE
-		SHFormatDateTime(&dateCreated, NULL, (LPWSTR)buffer, 512);
-		dateCreatedString = CString((LPWSTR)buffer);
-#else 
-		SHFormatDateTime(&dateCreated, NULL, (LPSTR)buffer, 1024);
-		dateCreatedString = CString((LPSTR)buffer);
-#endif
-		
-		CString insertStr;
-
-		int subItemCount = 0;
-		lvi.mask = LVIF_TEXT;
-		lvi.iItem = count++;
-		lvi.iSubItem = subItemCount++;
-#ifdef UNICODE
-		lvi.pszText = (LPWSTR)(LPCTSTR)fileName;
-#else
-		lvi.pszText = (LPCSTR)(LPCTSTR)fileName;
-#endif
-		ctrl_list_foundfile.InsertItem(&lvi);
-
-
-		lvi.iSubItem = subItemCount++;
-#ifdef UNICODE
-		lvi.pszText = (LPWSTR)(LPCTSTR)sizeString;
-#else
-		lvi.pszText = (LPCSTR)(LPCTSTR)sizeString;
-#endif
-		ctrl_list_foundfile.SetItem(&lvi);
-
-
-		lvi.iSubItem = subItemCount++;
-#ifdef UNICODE
-		lvi.pszText = (LPWSTR)(LPCTSTR)fullPath;
-#else
-		lvi.pszText = (LPCSTR)(LPCTSTR)fullPath;
-#endif
-		ctrl_list_foundfile.SetItem(&lvi);
-
-		lvi.iSubItem = subItemCount++;
-#ifdef UNICODE
-		lvi.pszText = (LPWSTR)(LPCTSTR)dateModifiedString;
-#else
-		lvi.pszText = (LPCSTR)(LPCTSTR)dateModifiedString;
-#endif
-		ctrl_list_foundfile.SetItem(&lvi);
-
-		lvi.iSubItem = subItemCount++;
-#ifdef UNICODE
-		lvi.pszText = (LPWSTR)(LPCTSTR)dateCreatedString;
-#else
-		lvi.pszText = (LPCSTR)(LPCTSTR)dateCreatedString;
-#endif
-		ctrl_list_foundfile.SetItem(&lvi);
-
-	} while (FindNextFile(hFind, &ffd) != 0);
+		else
+		{
+			//TODO: Create Msg box to notify about this error
+			return;
+		}
+	} 
+	
 	ctrl_list_foundfile.SetRedraw(true);
 	
 	if(!ctrl_list_foundfile.IsWindowVisible())
