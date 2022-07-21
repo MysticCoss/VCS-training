@@ -1,0 +1,1 @@
+decrypt.py LOCALIZATION_Resource_Decrypted.dump 65 LOCALIZATION_Resource.dump
